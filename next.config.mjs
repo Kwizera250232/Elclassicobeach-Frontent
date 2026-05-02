@@ -1,24 +1,19 @@
-import type { NextConfig } from 'next';
+// @ts-check
 
 const isDev = process.env.NODE_ENV !== 'production';
+
 const apiOrigin = (() => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!apiUrl) {
-    return '';
-  }
-
+  if (!apiUrl) return '';
   try {
     return new URL(apiUrl).origin;
   } catch {
     return '';
   }
 })();
-const connectSources = ["'self'", 'http://localhost:4001', 'https://localhost:4001'];
 
-if (apiOrigin) {
-  connectSources.push(apiOrigin);
-}
+const connectSources = ["'self'", 'http://localhost:4001', 'https://localhost:4001'];
+if (apiOrigin) connectSources.push(apiOrigin);
 
 const csp = [
   "default-src 'self'",
@@ -32,7 +27,8 @@ const csp = [
   "form-action 'self'",
 ].join('; ');
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // standalone output for self-hosted Docker; Vercel manages its own output
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   poweredByHeader: false,
