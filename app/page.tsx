@@ -13,16 +13,16 @@ type PhotoTileProps = {
 function PhotoTile({ src, title, subtitle, className }: PhotoTileProps) {
   return (
     <article
-      className={`relative overflow-hidden rounded-[1.5rem] border border-white/15 bg-[#12364f] p-4 ${className ?? ''}`}
+      className={`relative overflow-hidden rounded-[1.5rem] border border-gray-200 bg-gray-100 p-4 ${className ?? ''}`}
       style={{
-        backgroundImage: `linear-gradient(160deg, rgba(7, 20, 34, 0.2), rgba(7, 20, 34, 0.72)), url(${src})`,
+        backgroundImage: `linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.45)), url(${src})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
     >
-      <div className="mt-28 rounded-xl border border-white/10 bg-black/35 p-3 backdrop-blur-sm md:mt-40">
-        <p className="text-xs uppercase tracking-[0.24em] text-sand/95">{subtitle}</p>
-        <p className="mt-1 font-[var(--font-heading)] text-2xl leading-tight text-[#fff6e5]">{title}</p>
+      <div className="mt-28 rounded-xl border border-white/20 bg-white/80 p-3 backdrop-blur-sm md:mt-40">
+        <p className="text-xs uppercase tracking-[0.24em] text-amber-600">{subtitle}</p>
+        <p className="mt-1 font-[var(--font-heading)] text-2xl leading-tight text-gray-900">{title}</p>
       </div>
     </article>
   );
@@ -157,32 +157,32 @@ export default async function HomePage() {
   }));
 
   return (
-    <main className="min-h-screen w-full px-3 py-6 md:px-6 md:py-10 xl:px-10">
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/20 bg-black/20 px-4 py-3 backdrop-blur-sm">
+    <main className="min-h-screen w-full bg-white px-3 py-6 md:px-6 md:py-10 xl:px-10">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
         <div>
-          <p className="font-[var(--font-heading)] text-2xl tracking-wide text-[#fff6e5]">EL CLASSICO</p>
-          <p className="text-xs uppercase tracking-[0.2em] text-sand">Beach Chez West + Apartment</p>
+          <p className="font-[var(--font-heading)] text-2xl tracking-wide text-gray-900">EL CLASSICO</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Beach Chez West + Apartment</p>
         </div>
-        <nav className="flex flex-wrap items-center gap-2 text-sm text-white/85">
-          <a className="rounded-full px-3 py-2 transition hover:bg-white/10" href="#welcome">
+        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+          <a className="rounded-full px-3 py-2 transition hover:bg-gray-100" href="#welcome">
             Welcome
           </a>
-          <a className="rounded-full px-3 py-2 transition hover:bg-white/10" href="#daily-blog">
+          <a className="rounded-full px-3 py-2 transition hover:bg-gray-100" href="#daily-blog">
             Blog
           </a>
-          <a className="rounded-full px-3 py-2 transition hover:bg-white/10" href="#menu-highlights">
+          <a className="rounded-full px-3 py-2 transition hover:bg-gray-100" href="#menu-highlights">
             Menu
           </a>
-          <a className="rounded-full px-3 py-2 transition hover:bg-white/10" href="#nightlife">
+          <a className="rounded-full px-3 py-2 transition hover:bg-gray-100" href="#nightlife">
             Events
           </a>
-          <a className="rounded-full px-3 py-2 transition hover:bg-white/10" href="#apartment-stays">
+          <a className="rounded-full px-3 py-2 transition hover:bg-gray-100" href="#apartment-stays">
             Apartment
           </a>
-          <a className="rounded-full px-3 py-2 transition hover:bg-white/10" href="#bar-overview">
+          <a className="rounded-full px-3 py-2 transition hover:bg-gray-100" href="#bar-overview">
             Overview
           </a>
-          <a className="rounded-full bg-white px-4 py-2 font-semibold text-abyss transition hover:bg-[#fff6e5]" href="#book-now">
+          <a className="rounded-full bg-amber-500 px-4 py-2 font-semibold text-white transition hover:bg-amber-600" href="#book-now">
             Book Now
           </a>
         </nav>
@@ -191,34 +191,34 @@ export default async function HomePage() {
       <HeroSection />
 
       <section id="welcome" className="mt-6 grid gap-4 lg:grid-cols-[1.08fr_0.92fr] scroll-mt-24">
-        <article className="rounded-[2rem] border border-white/15 bg-black/25 p-6 md:p-8">
-          <p className="text-sm uppercase tracking-[0.24em] text-sand">Welcome to El Classico Beach Chez West</p>
-          <h2 className="mt-3 font-[var(--font-heading)] text-4xl leading-tight text-[#fff6e5] md:text-5xl">
+        <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+          <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Welcome to El Classico Beach Chez West</p>
+          <h2 className="mt-3 font-[var(--font-heading)] text-4xl leading-tight text-gray-900 md:text-5xl">
             Visitors are warmly welcomed to a smart lakefront destination.
           </h2>
-          <p className="mt-4 text-white/82">
+          <p className="mt-4 text-gray-600">
             El Classico Beach combines bar, restaurant, nightlife, and apartment accommodation in one elegant
             destination built to impress both visitors and owners.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-sand/90">Address</p>
-              <p className="mt-2 text-sm leading-6 text-white/85">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Address</p>
+              <p className="mt-2 text-sm leading-6 text-gray-700">
                 Rubavu Gisenyi - Brasserie Nyamyumba, New Rubavu Port
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-sand/90">Phone</p>
-              <a className="mt-2 block text-2xl font-semibold text-[#fff6e5]" href="tel:+250783256132">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Phone</p>
+              <a className="mt-2 block text-2xl font-semibold text-gray-900" href="tel:+250783256132">
                 0783256132
               </a>
             </div>
           </div>
         </article>
 
-        <article className="rounded-[2rem] border border-white/15 bg-black/20 p-4 md:p-5">
-          <p className="px-2 text-xs uppercase tracking-[0.22em] text-sand">Map</p>
-          <div className="mt-3 overflow-hidden rounded-[1.4rem] border border-white/10">
+        <article className="rounded-[2rem] border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+          <p className="px-2 text-xs uppercase tracking-[0.22em] text-amber-600">Map</p>
+          <div className="mt-3 overflow-hidden rounded-[1.4rem] border border-gray-200">
             <iframe
               title="El Classico Beach Map"
               src="https://www.google.com/maps?q=Rubavu%20Gisenyi%20Brasserie%20Nyamyumba%20new%20Rubavu%20Port&output=embed"
@@ -233,12 +233,12 @@ export default async function HomePage() {
       <section id="daily-blog" className="mt-10 scroll-mt-24">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-sand">Daily Blog News</p>
-            <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-[#fff6e5] md:text-5xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Daily Blog News</p>
+            <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-gray-900 md:text-5xl">
               Latest from El Classico Beach Chez West
             </h2>
           </div>
-          <p className="max-w-md text-sm text-white/70">
+          <p className="max-w-md text-sm text-gray-500">
             Quick updates from the beach, kitchen, events desk, and apartment team.
           </p>
         </div>
@@ -246,23 +246,23 @@ export default async function HomePage() {
           {dailyBlogNews.map((news) => (
             <article
               key={news.title}
-              className="rounded-[1.6rem] border border-white/15 bg-[linear-gradient(170deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))] p-5"
+              className="rounded-[1.6rem] border border-gray-200 bg-gray-50 p-5"
             >
-              <p className="text-xs uppercase tracking-[0.2em] text-sand/95">{news.date}</p>
-              <h3 className="mt-3 font-[var(--font-heading)] text-3xl text-[#fff6e5]">{news.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-white/78">{news.body}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-600">{news.date}</p>
+              <h3 className="mt-3 font-[var(--font-heading)] text-3xl text-gray-900">{news.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-gray-600">{news.body}</p>
             </article>
           ))}
         </div>
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[2rem] border border-white/15 bg-black/20 p-6 md:p-8">
-          <p className="text-sm uppercase tracking-[0.24em] text-sand">Positioning</p>
-          <h2 className="mt-3 font-[var(--font-heading)] text-4xl leading-tight text-[#fff6e5] md:text-5xl">
+        <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+          <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Positioning</p>
+          <h2 className="mt-3 font-[var(--font-heading)] text-4xl leading-tight text-gray-900 md:text-5xl">
             One destination for dining, nightlife, and short-stay hospitality.
           </h2>
-          <p className="mt-4 max-w-2xl text-base text-white/82">
+          <p className="mt-4 max-w-2xl text-base text-gray-600">
             The site is structured to keep restaurant reservations, event promotions, and apartment stays
             connected in the brand story while remaining operationally separate for booking and follow-up.
           </p>
@@ -270,9 +270,9 @@ export default async function HomePage() {
 
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
           {quickFacts.map((fact) => (
-            <article key={fact.label} className="rounded-[1.75rem] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm">
-              <p className="text-xs uppercase tracking-[0.24em] text-sand/90">{fact.label}</p>
-              <p className="mt-3 text-lg font-semibold text-white">{fact.value}</p>
+            <article key={fact.label} className="rounded-[1.75rem] border border-gray-200 bg-gray-50 p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-amber-600">{fact.label}</p>
+              <p className="mt-3 text-lg font-semibold text-gray-900">{fact.value}</p>
             </article>
           ))}
         </div>
@@ -282,10 +282,10 @@ export default async function HomePage() {
 
       <section className="mt-10 grid gap-4 md:grid-cols-3">
         {servicePillars.map((pillar) => (
-          <article key={pillar.title} className="rounded-[1.8rem] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-6">
-            <p className="text-xs uppercase tracking-[0.24em] text-sand">{pillar.eyebrow}</p>
-            <h3 className="mt-3 font-[var(--font-heading)] text-3xl text-[#fff6e5]">{pillar.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-white/78">{pillar.text}</p>
+          <article key={pillar.title} className="rounded-[1.8rem] border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-xs uppercase tracking-[0.24em] text-amber-600">{pillar.eyebrow}</p>
+            <h3 className="mt-3 font-[var(--font-heading)] text-3xl text-gray-900">{pillar.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-gray-600">{pillar.text}</p>
           </article>
         ))}
       </section>
@@ -295,12 +295,18 @@ export default async function HomePage() {
       <section id="bar-overview" className="mt-10 scroll-mt-24">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-sand">Bar and Restaurant Overview</p>
-            <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-[#fff6e5] md:text-5xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Bar and Restaurant Overview</p>
+            <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-gray-900 md:text-5xl">
               Lake Kivu atmosphere that differentiates El Classico Beach
             </h2>
           </div>
-          <p className="max-w-lg text-sm text-white/74">
+          <p className="max-w-lg text-sm text-gray-500">
+            A signature mix of lake-facing leisure, grilled cuisine, cocktail moments, and curated party programming.
+          </p>
+        </div>
+            </h2>
+          </div>
+          <p className="max-w-lg text-sm text-gray-500">
             A signature mix of lake-facing leisure, grilled cuisine, cocktail moments, and curated party programming.
           </p>
         </div>
@@ -315,44 +321,44 @@ export default async function HomePage() {
       </section>
 
       <section id="book-now" className="mt-10 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-[2rem] border border-[#f6ddac]/25 bg-[#f6ddac]/10 p-6 text-[#fff6e5] md:p-8">
-          <p className="text-sm uppercase tracking-[0.24em] text-[#f6ddac]">Booking Flow</p>
-          <h2 className="mt-3 font-[var(--font-heading)] text-4xl md:text-5xl">Clean and direct reservation journey.</h2>
+        <article className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 md:p-8">
+          <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Booking Flow</p>
+          <h2 className="mt-3 font-[var(--font-heading)] text-4xl text-gray-900 md:text-5xl">Clean and direct reservation journey.</h2>
           <div className="mt-6 space-y-4">
             {bookingSteps.map((step, index) => (
-              <div key={step} className="flex gap-4 rounded-2xl border border-white/10 bg-black/15 p-4">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-abyss">
+              <div key={step} className="flex gap-4 rounded-2xl border border-amber-100 bg-white p-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-white">
                   0{index + 1}
                 </span>
-                <p className="text-sm leading-6 text-white/85">{step}</p>
+                <p className="text-sm leading-6 text-gray-700">{step}</p>
               </div>
             ))}
           </div>
         </article>
 
-        <article className="rounded-[2rem] border border-white/15 bg-black/20 p-6 md:p-8">
+        <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm md:p-8">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-sand">Reservation Channels</p>
-              <h3 className="mt-3 font-[var(--font-heading)] text-4xl text-[#fff6e5]">Designed for quick conversion.</h3>
-              <p className="mt-4 text-sm leading-6 text-white/80">
+              <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Reservation Channels</p>
+              <h3 className="mt-3 font-[var(--font-heading)] text-4xl text-gray-900">Designed for quick conversion.</h3>
+              <p className="mt-4 text-sm leading-6 text-gray-600">
                 The homepage is ready to route guests toward table reservations, VIP event requests, and
                 apartment inquiries with separate contact handling to keep operations clear and secure.
               </p>
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-sand/85">Dining Desk</p>
-                <p className="mt-2 text-lg font-semibold text-white">Ideal for lunch, dinner, and group tables</p>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Dining Desk</p>
+                <p className="mt-2 text-lg font-semibold text-gray-900">Ideal for lunch, dinner, and group tables</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-sand/85">Event Desk</p>
-                <p className="mt-2 text-lg font-semibold text-white">VIP seating, birthdays, and live show nights</p>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Event Desk</p>
+                <p className="mt-2 text-lg font-semibold text-gray-900">VIP seating, birthdays, and live show nights</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-sand/85">Stay Desk</p>
-                <p className="mt-2 text-lg font-semibold text-white">Apartment availability and concierge add-ons</p>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Stay Desk</p>
+                <p className="mt-2 text-lg font-semibold text-gray-900">Apartment availability and concierge add-ons</p>
               </div>
             </div>
           </div>
@@ -397,12 +403,12 @@ export default async function HomePage() {
       <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-sand">Apartment Overview</p>
-            <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-[#fff6e5] md:text-5xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Apartment Overview</p>
+            <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-gray-900 md:text-5xl">
               Sweet, smart accommodation with beach-connected comfort
             </h2>
           </div>
-          <p className="max-w-xl text-sm text-white/74">
+          <p className="max-w-xl text-sm text-gray-500">
             Designed for couples, families, and short-stay guests who want style, relaxation, and fast access
             to bar and restaurant experiences.
           </p>
@@ -417,16 +423,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mt-10 rounded-3xl border border-white/20 bg-black/25 p-6 md:p-10">
-        <p className="text-sm uppercase tracking-[0.24em] text-sand">Launch Scope</p>
-        <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-[#fff6e5]">MVP Foundations Ready</h2>
-        <p className="mt-3 max-w-2xl text-white/85">
+      <section className="mt-10 rounded-3xl border border-gray-200 bg-gray-50 p-6 md:p-10">
+        <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Launch Scope</p>
+        <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-gray-900">MVP Foundations Ready</h2>
+        <p className="mt-3 max-w-2xl text-gray-600">
           This isolated scaffold includes backend auth and core domain schema, plus a premium frontend
           direction ready for reservations, food ordering, events, and apartment booking flows.
         </p>
       </section>
 
-      <footer className="mb-10 mt-6 rounded-3xl border border-white/12 bg-black/20 px-6 py-5 text-sm text-white/70">
+      <footer className="mb-10 mt-6 rounded-3xl border border-gray-200 bg-gray-50 px-6 py-5 text-sm text-gray-500">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <p>El Classico Beach Chez West and Apartment experience site.</p>
           <p>Rubavu Gisenyi - Brasserie Nyamyumba, New Rubavu Port | 0783256132</p>
