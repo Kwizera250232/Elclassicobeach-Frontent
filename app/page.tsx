@@ -147,6 +147,14 @@ const apartmentGallery = [
 
 export default async function HomePage() {
   const data = await getHomeData();
+  const resolvedBarGallery = barGallery.map((item, index) => ({
+    ...item,
+    src: data.media.barOverview[index] ?? item.src,
+  }));
+  const resolvedApartmentGallery = apartmentGallery.map((item, index) => ({
+    ...item,
+    src: data.media.apartmentOverview[index] ?? item.src,
+  }));
 
   return (
     <main className="min-h-screen w-full px-3 py-6 md:px-6 md:py-10 xl:px-10">
@@ -298,11 +306,11 @@ export default async function HomePage() {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-12">
-          <PhotoTile {...barGallery[0]} className="md:col-span-7" />
-          <PhotoTile {...barGallery[1]} className="md:col-span-5" />
-          <PhotoTile {...barGallery[2]} className="md:col-span-4" />
-          <PhotoTile {...barGallery[3]} className="md:col-span-4" />
-          <PhotoTile {...barGallery[4]} className="md:col-span-4" />
+          <PhotoTile {...resolvedBarGallery[0]} className="md:col-span-7" />
+          <PhotoTile {...resolvedBarGallery[1]} className="md:col-span-5" />
+          <PhotoTile {...resolvedBarGallery[2]} className="md:col-span-4" />
+          <PhotoTile {...resolvedBarGallery[3]} className="md:col-span-4" />
+          <PhotoTile {...resolvedBarGallery[4]} className="md:col-span-4" />
         </div>
       </section>
 
@@ -401,11 +409,11 @@ export default async function HomePage() {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-12">
-          <PhotoTile {...apartmentGallery[0]} className="md:col-span-4" />
-          <PhotoTile {...apartmentGallery[1]} className="md:col-span-4" />
-          <PhotoTile {...apartmentGallery[2]} className="md:col-span-4" />
-          <PhotoTile {...apartmentGallery[3]} className="md:col-span-7" />
-          <PhotoTile {...apartmentGallery[4]} className="md:col-span-5" />
+          <PhotoTile {...resolvedApartmentGallery[0]} className="md:col-span-4" />
+          <PhotoTile {...resolvedApartmentGallery[1]} className="md:col-span-4" />
+          <PhotoTile {...resolvedApartmentGallery[2]} className="md:col-span-4" />
+          <PhotoTile {...resolvedApartmentGallery[3]} className="md:col-span-7" />
+          <PhotoTile {...resolvedApartmentGallery[4]} className="md:col-span-5" />
         </div>
       </section>
 

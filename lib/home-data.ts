@@ -22,10 +22,18 @@ type ApartmentItem = {
   rooms: Array<{ id: string; title: string; capacity: number; baseNightlyRate: string | number }>;
 };
 
+type MediaResource = {
+  secureUrl: string;
+};
+
 export type HomeData = {
   menu: MenuItem[];
   events: EventItem[];
   apartments: ApartmentItem[];
+  media: {
+    barOverview: string[];
+    apartmentOverview: string[];
+  };
 };
 
 const fallbackData: HomeData = {
@@ -74,16 +82,51 @@ const fallbackData: HomeData = {
       ],
     },
   ],
+  media: {
+    barOverview: [
+      '/gallery/01-el-classico-promo.jpg',
+      '/gallery/02-boat-lake-kivu.jpg',
+      '/gallery/03-fish-platter.jpg',
+      '/gallery/04-cocktails-service.jpg',
+      '/gallery/05-classic-deal-event.jpg',
+    ],
+    apartmentOverview: [
+      '/gallery/06-apartment-suite-1.jpg',
+      '/gallery/07-apartment-suite-2.jpg',
+      '/gallery/08-apartment-suite-3.jpg',
+      '/gallery/09-apartment-overview.jpg',
+      '/gallery/10-apartment-outside-view.jpg',
+    ],
+  },
 };
+
+async function fetchPublicMedia(apiBase: string, folder: string): Promise<string[]> {
+  try {
+    const mediaRes = await fetch(`${apiBase}/admin/media/public?folder=${encodeURIComponent(folder)}`, {
+      next: { revalidate: 60 },
+    });
+
+    if (!mediaRes.ok) {
+      return [];
+    }
+
+    const payload = (await mediaRes.json()) as { resources?: MediaResource[] };
+    return (payload.resources ?? []).map((item) => item.secureUrl).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
 
 export async function getHomeData(): Promise<HomeData> {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api';
 
   try {
-    const [menuRes, eventsRes, apartmentsRes] = await Promise.all([
+    const [menuRes, eventsRes, apartmentsRes, barMedia, apartmentMedia] = await Promise.all([
       fetch(`${apiBase}/menu/items`, { next: { revalidate: 120 } }),
       fetch(`${apiBase}/events`, { next: { revalidate: 120 } }),
       fetch(`${apiBase}/apartments`, { next: { revalidate: 120 } }),
+      fetchPublicMedia(apiBase, 'bar-overview'),
+      fetchPublicMedia(apiBase, 'apartment-overview'),
     ]);
 
     if (!menuRes.ok || !eventsRes.ok || !apartmentsRes.ok) {
@@ -100,6 +143,11 @@ export async function getHomeData(): Promise<HomeData> {
       menu: menu.length > 0 ? menu.slice(0, 3) : fallbackData.menu,
       events: events.length > 0 ? events.slice(0, 3) : fallbackData.events,
       apartments: apartments.length > 0 ? apartments.slice(0, 2) : fallbackData.apartments,
+      media: {
+        barOverview: barMedia.length > 0 ? barMedia : fallbackData.media.barOverview,
+        apartmentOverview:
+          apartmentMedia.length > 0 ? apartmentMedia : fallbackData.media.apartmentOverview,
+      },
     };
   } catch {
     return fallbackData;
