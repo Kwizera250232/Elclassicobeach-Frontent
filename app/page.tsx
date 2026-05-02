@@ -149,7 +149,7 @@ export default async function HomePage() {
   const data = await getHomeData();
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 py-6 md:px-8 md:py-10">
+    <main className="min-h-screen w-full px-3 py-6 md:px-6 md:py-10 xl:px-10">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/20 bg-black/20 px-4 py-3 backdrop-blur-sm">
         <div>
           <p className="font-[var(--font-heading)] text-2xl tracking-wide text-[#fff6e5]">EL CLASSICO</p>
