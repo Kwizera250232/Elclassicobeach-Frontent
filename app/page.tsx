@@ -71,24 +71,6 @@ const testimonials = [
   },
 ];
 
-const dailyBlogNews = [
-  {
-    date: 'Saturday Update',
-    title: 'Classic Deal Night keeps Friday to Sunday vibrant',
-    body: 'Beach music, selected drinks, and table service continue to drive weekend energy for visitors around Rubavu Port.',
-  },
-  {
-    date: 'Kitchen Story',
-    title: 'Fresh fish and grilled chicken remain our signature plates',
-    body: 'The kitchen team is focusing on clean local flavors, balanced portions, and faster serving time during peak sunset hours.',
-  },
-  {
-    date: 'Stay News',
-    title: 'Apartment guests now combine room nights with boat moments',
-    body: 'Accommodation experiences are packaged with scenic lake sessions to create one premium day-to-night destination flow.',
-  },
-];
-
 const barGallery = [
   {
     src: '/gallery/01-el-classico-promo.jpg',
@@ -144,6 +126,23 @@ const apartmentGallery = [
     subtitle: 'Architecture',
   },
 ];
+
+function formatUpdateDate(value?: string | null) {
+  if (!value) {
+    return 'Latest Update';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Latest Update';
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 export default async function HomePage() {
   const data = await getHomeData();
@@ -239,18 +238,20 @@ export default async function HomePage() {
             </h2>
           </div>
           <p className="max-w-md text-sm text-gray-500">
-            Quick updates from the beach, kitchen, events desk, and apartment team.
+            Published dashboard updates from the beach, kitchen, events desk, and apartment team.
           </p>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {dailyBlogNews.map((news) => (
+          {data.blogPosts.map((news) => (
             <article
               key={news.title}
               className="rounded-[1.6rem] border border-gray-200 bg-gray-50 p-5"
             >
-              <p className="text-xs uppercase tracking-[0.2em] text-amber-600">{news.date}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-600">
+                {formatUpdateDate(news.publishedAt ?? news.createdAt)}
+              </p>
               <h3 className="mt-3 font-[var(--font-heading)] text-3xl text-gray-900">{news.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-gray-600">{news.body}</p>
+              <p className="mt-3 text-sm leading-6 text-gray-600">{news.excerpt}</p>
             </article>
           ))}
         </div>
@@ -298,12 +299,6 @@ export default async function HomePage() {
             <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Bar and Restaurant Overview</p>
             <h2 className="mt-2 font-[var(--font-heading)] text-4xl text-gray-900 md:text-5xl">
               Lake Kivu atmosphere that differentiates El Classico Beach
-            </h2>
-          </div>
-          <p className="max-w-lg text-sm text-gray-500">
-            A signature mix of lake-facing leisure, grilled cuisine, cocktail moments, and curated party programming.
-          </p>
-        </div>
             </h2>
           </div>
           <p className="max-w-lg text-sm text-gray-500">
