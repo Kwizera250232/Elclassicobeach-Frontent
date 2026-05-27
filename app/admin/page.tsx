@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api';
 
@@ -170,10 +170,10 @@ function BlogTab({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     try { const data = await apiFetch('/blog/all', token); setPosts(Array.isArray(data) ? data : []); } catch {}
-  }
-  useEffect(() => { void load(); }, [token]);
+  }, [token]);
+  useEffect(() => { void load(); }, [load]);
 
   function startNew() { setEditing(null); setForm({ title: '', excerpt: '', content: '', coverImage: '', published: false }); }
   function startEdit(p: BlogPost) { setEditing(p); setForm({ title: p.title, excerpt: p.excerpt, content: p.content, coverImage: p.coverImage ?? '', published: p.published }); }
@@ -277,8 +277,10 @@ function MenuTab({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  async function load() { try { const data = await apiFetch('/menu', token); setItems(Array.isArray(data) ? data : []); } catch {} }
-  useEffect(() => { void load(); }, [token]);
+  const load = useCallback(async () => {
+    try { const data = await apiFetch('/menu', token); setItems(Array.isArray(data) ? data : []); } catch {}
+  }, [token]);
+  useEffect(() => { void load(); }, [load]);
 
   function startEdit(item: MenuItem) { setEditing(item); setForm({ title: item.title, description: item.description, basePrice: item.basePrice, isAvailable: item.isAvailable }); }
   function startNew() { setEditing(null); setForm({ title: '', description: '', basePrice: '', isAvailable: true }); }
@@ -378,8 +380,10 @@ function EventsTab({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  async function load() { try { const data = await apiFetch('/events', token); setItems(Array.isArray(data) ? data : []); } catch {} }
-  useEffect(() => { void load(); }, [token]);
+  const load = useCallback(async () => {
+    try { const data = await apiFetch('/events', token); setItems(Array.isArray(data) ? data : []); } catch {}
+  }, [token]);
+  useEffect(() => { void load(); }, [load]);
 
   function startEdit(ev: EventItem) { setEditing(ev); setForm({ title: ev.title, description: ev.description, startsAt: ev.startsAt?.slice(0, 16) ?? '', endsAt: ev.endsAt?.slice(0, 16) ?? '', coverImageUrl: ev.coverImageUrl ?? '' }); }
   function startNew() { setEditing(null); setForm({ title: '', description: '', startsAt: '', endsAt: '', coverImageUrl: '' }); }
@@ -528,10 +532,10 @@ function MediaTab({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     try { const data = await apiFetch(`/admin/media?folder=${encodeURIComponent(folder)}`, token); setResources(data.resources ?? []); } catch {}
-  }
-  useEffect(() => { void load(); }, [token, folder]);
+  }, [folder, token]);
+  useEffect(() => { void load(); }, [load]);
 
   async function upload() {
     if (!file) return;
