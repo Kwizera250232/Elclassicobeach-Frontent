@@ -1,20 +1,3 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-    ],
-  },
-};
-
-export default nextConfig;
 // @ts-check
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -36,7 +19,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
   "font-src 'self' data:",
   `connect-src ${Array.from(new Set(connectSources)).join(' ')}`,
   "frame-src 'self' https://www.google.com https://maps.google.com",
@@ -56,6 +39,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
       },
     ],
   },
