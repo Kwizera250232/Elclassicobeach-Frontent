@@ -39,6 +39,10 @@ function formatDate(value?: string | null) {
   }).format(new Date(value));
 }
 
+function getPostHref(post: BlogPost) {
+  return `/blog/${encodeURIComponent(post.slug || post.id)}`;
+}
+
 export default async function BlogRoute() {
   const posts = await getPosts();
 
@@ -75,10 +79,11 @@ export default async function BlogRoute() {
         <div className="mx-auto max-w-[1320px]">
           {posts.length > 0 ? (
             <div className="grid gap-8 lg:grid-cols-3">
-              {posts.map((post, index) => (
-                <article
+              {posts.map((post) => (
+                <a
                   key={post.id}
-                  className={index === 0 ? 'bg-white lg:col-span-2 lg:grid lg:grid-cols-2' : 'bg-white'}
+                  href={getPostHref(post)}
+                  className="group block bg-white transition duration-500 hover:-translate-y-1 hover:shadow-[0_28px_90px_rgba(8,27,42,0.14)]"
                 >
                   {post.coverImage ? (
                     <img
@@ -91,19 +96,15 @@ export default async function BlogRoute() {
                       <span className="font-[var(--font-heading)] text-5xl leading-none">El Classico Magazine</span>
                     </div>
                   )}
-                  <div className="border border-t-0 border-abyss/10 p-7 lg:border-l-0 lg:border-t">
-                    <p className="text-xs font-black uppercase tracking-[0.25em] text-gold">
-                      {formatDate(post.publishedAt ?? post.createdAt)}
-                    </p>
+                  <div className="border border-t-0 border-abyss/10 p-7">
                     <h2 className="mt-5 font-[var(--font-heading)] text-4xl font-semibold leading-none text-abyss">
                       {post.title}
                     </h2>
-                    <p className="mt-5 text-sm leading-7 text-slate-600">{post.excerpt}</p>
-                    <div className="mt-6 whitespace-pre-line text-sm leading-7 text-slate-700">
-                      {post.content}
-                    </div>
+                    <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-gold">
+                      Read more
+                    </p>
                   </div>
-                </article>
+                </a>
               ))}
             </div>
           ) : (

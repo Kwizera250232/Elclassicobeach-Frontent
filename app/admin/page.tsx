@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api';
 
@@ -402,14 +402,23 @@ function OverviewTab({ token, setActive }: { token: string; setActive: (tab: Tab
 function MagazineTab({ token }: { token: string }) {
   const blank = { title: '', excerpt: '', content: '', coverImage: '', published: true };
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [gallery, setGallery] = useState<MediaResource[]>([]);
   const [editing, setEditing] = useState<BlogPost | null>(null);
   const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [status, setStatus] = useState<Status>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   async function load() {
     try {
-      setPosts(await request<BlogPost[]>('/blog/all', {}, token));
+      const [nextPosts, media] = await Promise.allSettled([
+        request<BlogPost[]>('/blog/all', {}, token),
+        request<{ resources?: MediaResource[] }>('/admin/media?folder=blog', {}, token),
+      ]);
+      if (nextPosts.status === 'fulfilled') setPosts(nextPosts.value);
+      if (media.status === 'fulfilled') setGallery(media.value.resources ?? []);
+      if (nextPosts.status === 'rejected') throw nextPosts.reason;
     } catch (error) {
       setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Could not load posts.' });
     }
@@ -475,6 +484,27 @@ function MagazineTab({ token }: { token: string }) {
     await load();
   }
 
+  async function uploadCover(file: File | null) {
+    if (!file) return;
+    const body = new FormData();
+    body.append('file', file);
+    body.append('folder', 'blog');
+    setUploadingCover(true);
+    setStatus(null);
+    try {
+      const uploaded = await request<{ secureUrl?: string }>('/admin/media/upload', { method: 'POST', body }, token);
+      if (!uploaded.secureUrl) throw new Error('Upload completed, but no image URL was returned.');
+      setForm((current) => ({ ...current, coverImage: uploaded.secureUrl! }));
+      setStatus({ type: 'success', text: 'Featured image uploaded and attached to this article.' });
+      await load();
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Image upload failed.' });
+    } finally {
+      setUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  }
+
   return (
     <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
       <Panel>
@@ -507,6 +537,82 @@ function MagazineTab({ token }: { token: string }) {
               placeholder="https://res.cloudinary.com/..."
             />
           </Field>
+          <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+                  Featured image
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Choose from gallery with one click, or upload from your device.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => void uploadCover(event.target.files?.[0] ?? null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={uploadingCover}
+                  className="rounded-full bg-abyss px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-gold disabled:opacity-60"
+                >
+                  {uploadingCover ? 'Uploading...' : 'Upload from device'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-500"
+                >
+                  Refresh gallery
+                </button>
+              </div>
+            </div>
+            {form.coverImage ? (
+              <div className="mt-4 flex items-center gap-4 rounded-2xl bg-white p-3">
+                <img src={form.coverImage} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800">Current featured image</p>
+                  <p className="truncate text-xs text-slate-400">{form.coverImage}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, coverImage: '' })}
+                  className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : null}
+            <div className="mt-4 grid max-h-72 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+              {gallery.map((image) => (
+                <button
+                  key={image.publicId}
+                  type="button"
+                  onClick={() => setForm({ ...form, coverImage: image.secureUrl })}
+                  className={cx(
+                    'group overflow-hidden rounded-2xl border bg-white text-left transition',
+                    form.coverImage === image.secureUrl ? 'border-gold ring-2 ring-gold/30' : 'border-slate-200 hover:border-gold',
+                  )}
+                  title="Use this image"
+                >
+                  <img src={image.secureUrl} alt="" className="aspect-square w-full object-cover transition group-hover:scale-105" />
+                  <span className="block truncate px-3 py-2 text-xs font-bold text-slate-500">
+                    Use this image
+                  </span>
+                </button>
+              ))}
+              {gallery.length === 0 ? (
+                <p className="col-span-full rounded-2xl bg-white p-4 text-sm text-slate-400">
+                  No blog gallery images yet. Use “Upload from device” to add one immediately.
+                </p>
+              ) : null}
+            </div>
+          </div>
           <Field label="Article content">
             <textarea
               rows={10}
