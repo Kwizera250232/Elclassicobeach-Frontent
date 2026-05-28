@@ -19,7 +19,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://www.kigaliup.net https://q-xx.bstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
+  "img-src 'self' data: blob: https: https://*.googleapis.com https://*.gstatic.com https://*.google.com",
   "font-src 'self' data:",
   `connect-src ${Array.from(new Set(connectSources)).join(' ')}`,
   "frame-src 'self' https://www.google.com https://maps.google.com",

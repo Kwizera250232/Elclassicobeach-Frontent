@@ -1,598 +1,980 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api';
 
-type Tab = 'overview' | 'media' | 'menu' | 'events' | 'apartments' | 'reservations' | 'blog';
-type MediaResource = { publicId: string; secureUrl: string };
-type MenuItem = { id: string; title: string; description: string; basePrice: string; isAvailable: boolean };
-type EventItem = { id: string; title: string; description: string; startsAt: string; endsAt: string; coverImageUrl?: string };
-type ApartmentItem = { id: string; name: string; description: string; coverImageUrl?: string };
-type ReservationItem = { id: string; guests: number; zone?: string; notes?: string; reservationAt: string; user?: { fullName: string; email: string } };
-type BlogPost = { id: string; title: string; excerpt: string; content: string; coverImage?: string; published: boolean; publishedAt?: string; createdAt: string };
+type Tab = 'overview' | 'magazine' | 'menu' | 'events' | 'media' | 'business';
+type Status = { type: 'success' | 'error' | 'info'; text: string } | null;
 
-const mediaFolders = ['bar-overview', 'apartment-overview', 'blog', 'welcome', 'hero'] as const;
+type BlogPost = {
+  id: string;
+  title: string;
+  slug?: string;
+  excerpt: string;
+  content: string;
+  coverImage?: string | null;
+  published: boolean;
+  publishedAt?: string | null;
+  createdAt: string;
+};
 
-async function apiFetch(path: string, token: string, opts: RequestInit = {}) {
-  const res = await fetch(`${apiBase}${path}`, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(opts.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error ${res.status}`);
-  return res.json();
+type MenuCategory = { id: string; name: string; slug: string; itemCount?: number };
+type MenuItem = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string | null;
+  category: string;
+  spiceLevel: number;
+  pairingHint?: string | null;
+  isAvailable: boolean;
+  basePrice: number;
+};
+type EventItem = {
+  id: string;
+  title: string;
+  description: string;
+  startsAt: string;
+  endsAt: string;
+  coverImageUrl?: string | null;
+};
+type ApartmentItem = {
+  id: string;
+  name: string;
+  description: string;
+  coverImageUrl?: string | null;
+  rooms?: Array<{ id: string; title: string; capacity: number; baseNightlyRate: string | number }>;
+};
+type ReservationItem = {
+  id: string;
+  guests: number;
+  zone?: string | null;
+  notes?: string | null;
+  reservationAt: string;
+  user?: { fullName?: string | null; email?: string | null } | null;
+};
+type MediaResource = { publicId: string; secureUrl: string; width?: number; height?: number };
+
+const mediaFolders = ['hero', 'welcome', 'bar-overview', 'apartment-overview', 'blog', 'offers'] as const;
+
+async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const res = await fetch(`${apiBase}${path}`, { ...options, headers });
+  if (!res.ok) {
+    const message = await res.text().catch(() => '');
+    throw new Error(message || `Request failed with ${res.status}`);
+  }
+  return (await res.json()) as T;
 }
 
-// ── Login ────────────────────────────────────────────────────────────────────
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <section className={cx('rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-sm', className)}>
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+        {label}
+      </span>
+      {children}
+      {hint ? <span className="mt-1 block text-xs text-slate-400">{hint}</span> : null}
+    </label>
+  );
+}
+
+function StatusNote({ status }: { status: Status }) {
+  if (!status) return null;
+  return (
+    <p
+      className={cx(
+        'mt-4 rounded-2xl px-4 py-3 text-sm',
+        status.type === 'success' && 'bg-emerald-50 text-emerald-700',
+        status.type === 'error' && 'bg-red-50 text-red-700',
+        status.type === 'info' && 'bg-blue-50 text-blue-700',
+      )}
+    >
+      {status.text}
+    </p>
+  );
+}
+
 function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
   const [email, setEmail] = useState('admin@elclassico.rw');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [status, setStatus] = useState<Status>(null);
 
-  async function handleLogin() {
-    setBusy(true); setError('');
+  async function login() {
+    setBusy(true);
+    setStatus(null);
     try {
-      const res = await fetch(`${apiBase}/auth/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const payload = await request<{
+        user?: { role?: string };
+        tokens?: { accessToken?: string };
+      }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim(), password }),
       });
-      if (!res.ok) throw new Error('Invalid credentials');
-      const data = await res.json();
-      if (data?.user?.role !== 'ADMIN') throw new Error('Not an admin account');
-      const t = data.tokens.accessToken as string;
-      window.localStorage.setItem('elclassico_admin_token', t);
-      onLogin(t);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
-    } finally { setBusy(false); }
+
+      if (payload.user?.role !== 'ADMIN' || !payload.tokens?.accessToken) {
+        throw new Error('This account is not authorized for the admin panel.');
+      }
+
+      window.localStorage.setItem('elclassico_admin_token', payload.tokens.accessToken);
+      onLogin(payload.tokens.accessToken);
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Login failed.',
+      });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-2xl">🏖</div>
-          <h1 className="text-xl font-bold text-gray-900">El Classico Admin</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to manage your venue</p>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,rgba(217,170,75,0.18),transparent_32%),linear-gradient(135deg,#081b2a,#030a10)] px-5 py-12 text-white">
+      <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl items-center">
+        <div className="grid w-full gap-8 lg:grid-cols-[1fr_0.82fr]">
+          <section className="self-center">
+            <p className="text-xs font-black uppercase tracking-[0.38em] text-gold">Secure dashboard</p>
+            <h1 className="mt-6 font-[var(--font-heading)] text-6xl font-semibold leading-[0.9] tracking-[-0.05em] md:text-8xl">
+              El Classico Admin Panel
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/70">
+              Manage El Classico Magazine posts, menu items, events, public media, destination links,
+              and operational content from one modern dashboard.
+            </p>
+          </section>
+
+          <section className="rounded-[2rem] border border-white/10 bg-white p-7 text-slate-900 shadow-2xl">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">Admin login</p>
+            <h2 className="mt-3 font-[var(--font-heading)] text-4xl font-semibold">Sign in</h2>
+            <div className="mt-7 space-y-4">
+              <Field label="Email">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && login()}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-gold"
+                />
+              </Field>
+              <Field label="Password">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && login()}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-gold"
+                />
+              </Field>
+            </div>
+            <button
+              type="button"
+              onClick={login}
+              disabled={busy}
+              className="mt-6 w-full rounded-2xl bg-abyss px-5 py-3 text-sm font-black uppercase tracking-[0.22em] text-gold transition hover:bg-ocean disabled:opacity-60"
+            >
+              {busy ? 'Signing in...' : 'Open Dashboard'}
+            </button>
+            <StatusNote status={status} />
+          </section>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
-            <input type="email" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-            <input type="password" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
-          </div>
-        </div>
-        {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-        <button onClick={handleLogin} disabled={busy} className="mt-5 w-full rounded-lg bg-amber-500 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60">
-          {busy ? 'Signing in...' : 'Sign In'}
-        </button>
       </div>
-    </div>
+    </main>
   );
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
-const NAV: { id: Tab; label: string; icon: string }[] = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
-  { id: 'blog', label: 'Blog Posts', icon: '✍️' },
-  { id: 'menu', label: 'Menu Items', icon: '🍽' },
-  { id: 'events', label: 'Events', icon: '🎉' },
-  { id: 'apartments', label: 'Apartments', icon: '🏠' },
-  { id: 'reservations', label: 'Reservations', icon: '📅' },
-  { id: 'media', label: 'Media Gallery', icon: '🖼' },
+const tabs: Array<{ id: Tab; label: string; description: string }> = [
+  { id: 'overview', label: 'Overview', description: 'Live links and dashboard summary' },
+  { id: 'magazine', label: 'Magazine', description: 'Post El Classico updates' },
+  { id: 'menu', label: 'Menu', description: 'Food categories and items' },
+  { id: 'events', label: 'Events', description: 'Create upcoming events' },
+  { id: 'media', label: 'Media', description: 'Upload website images' },
+  { id: 'business', label: 'Business', description: 'Apartments and bookings' },
 ];
 
-function Sidebar({ active, setActive, onLogout }: { active: Tab; setActive: (t: Tab) => void; onLogout: () => void }) {
+function Shell({
+  token,
+  onLogout,
+}: {
+  token: string;
+  onLogout: () => void;
+}) {
+  const [active, setActive] = useState<Tab>('overview');
+
   return (
-    <aside className="flex h-screen w-56 flex-col border-r border-gray-200 bg-white">
-      <div className="border-b border-gray-200 px-4 py-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-500">El Classico</p>
-        <h2 className="mt-0.5 text-base font-bold text-gray-900">Admin Panel</h2>
-      </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
-        {NAV.map((item) => (
-          <button key={item.id} onClick={() => setActive(item.id)}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active === item.id ? 'bg-amber-50 font-semibold text-amber-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
-            <span>{item.icon}</span>{item.label}
+    <main className="min-h-screen bg-slate-100 text-slate-900">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white px-5 py-6 lg:block">
+        <p className="text-xs font-black uppercase tracking-[0.32em] text-gold">El Classico</p>
+        <h1 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold leading-none">
+          Admin Panel
+        </h1>
+        <nav className="mt-8 space-y-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActive(tab.id)}
+              className={cx(
+                'w-full rounded-2xl px-4 py-3 text-left transition',
+                active === tab.id ? 'bg-abyss text-white' : 'text-slate-600 hover:bg-slate-100',
+              )}
+            >
+              <span className="block text-sm font-bold">{tab.label}</span>
+              <span className={cx('mt-1 block text-xs', active === tab.id ? 'text-white/58' : 'text-slate-400')}>
+                {tab.description}
+              </span>
+            </button>
+          ))}
+        </nav>
+        <div className="absolute bottom-6 left-5 right-5 space-y-3">
+          <a
+            href="/"
+            className="block rounded-2xl border border-slate-200 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-600 transition hover:border-gold hover:text-abyss"
+          >
+            View website
+          </a>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="w-full rounded-2xl bg-slate-100 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+          >
+            Logout
           </button>
-        ))}
-      </nav>
-      <div className="border-t border-gray-200 p-3">
-        <button onClick={onLogout} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100">
-          <span>🚪</span> Logout
-        </button>
-      </div>
-    </aside>
+        </div>
+      </aside>
+
+      <section className="lg:pl-72">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/92 px-5 py-4 backdrop-blur lg:px-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-gold">Dashboard</p>
+              <h2 className="font-[var(--font-heading)] text-4xl font-semibold leading-none">
+                {tabs.find((tab) => tab.id === active)?.label}
+              </h2>
+            </div>
+            <div className="flex gap-2 overflow-x-auto lg:hidden">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActive(tab.id)}
+                  className={cx(
+                    'shrink-0 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.16em]',
+                    active === tab.id ? 'bg-abyss text-gold' : 'bg-slate-100 text-slate-500',
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        <div className="p-5 lg:p-8">
+          {active === 'overview' && <OverviewTab token={token} setActive={setActive} />}
+          {active === 'magazine' && <MagazineTab token={token} />}
+          {active === 'menu' && <MenuTab token={token} />}
+          {active === 'events' && <EventsTab token={token} />}
+          {active === 'media' && <MediaTab token={token} />}
+          {active === 'business' && <BusinessTab token={token} />}
+        </div>
+      </section>
+    </main>
   );
 }
 
-// ── Overview ─────────────────────────────────────────────────────────────────
-function OverviewTab({ token }: { token: string }) {
-  const [stats, setStats] = useState({ blog: 0, menu: 0, events: 0, reservations: 0, apartments: 0 });
+function OverviewTab({ token, setActive }: { token: string; setActive: (tab: Tab) => void }) {
+  const [counts, setCounts] = useState({ posts: 0, items: 0, categories: 0, events: 0, apartments: 0 });
 
   useEffect(() => {
     async function load() {
-      try {
-        const [blog, menu, events, reservations, apartments] = await Promise.all([
-          apiFetch('/blog/all', token), apiFetch('/menu', token), apiFetch('/events', token),
-          apiFetch('/reservations', token), apiFetch('/apartments', token),
-        ]);
-        setStats({
-          blog: Array.isArray(blog) ? blog.length : 0,
-          menu: Array.isArray(menu) ? menu.length : 0,
-          events: Array.isArray(events) ? events.length : 0,
-          reservations: Array.isArray(reservations) ? reservations.length : 0,
-          apartments: Array.isArray(apartments) ? apartments.length : 0,
-        });
-      } catch {}
+      const [posts, items, categories, events, apartments] = await Promise.allSettled([
+        request<BlogPost[]>('/blog/all', {}, token),
+        request<MenuItem[]>('/menu/items'),
+        request<MenuCategory[]>('/menu/categories'),
+        request<EventItem[]>('/events'),
+        request<ApartmentItem[]>('/apartments'),
+      ]);
+      setCounts({
+        posts: posts.status === 'fulfilled' ? posts.value.length : 0,
+        items: items.status === 'fulfilled' ? items.value.length : 0,
+        categories: categories.status === 'fulfilled' ? categories.value.length : 0,
+        events: events.status === 'fulfilled' ? events.value.length : 0,
+        apartments: apartments.status === 'fulfilled' ? apartments.value.length : 0,
+      });
     }
     void load();
   }, [token]);
 
-  const cards = [
-    { label: 'Blog Posts', value: stats.blog, icon: '✍️', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Menu Items', value: stats.menu, icon: '🍽', color: 'bg-green-50 text-green-600' },
-    { label: 'Events', value: stats.events, icon: '🎉', color: 'bg-purple-50 text-purple-600' },
-    { label: 'Reservations', value: stats.reservations, icon: '📅', color: 'bg-amber-50 text-amber-600' },
-    { label: 'Apartments', value: stats.apartments, icon: '🏠', color: 'bg-rose-50 text-rose-600' },
+  const destinations: Array<{ title: string; href: string; action: Tab | null; copy: string }> = [
+    { title: 'Homepage', href: '/', action: null, copy: 'Public luxury homepage' },
+    { title: 'El Classico Magazine', href: '/blog', action: 'magazine', copy: 'Published news and updates' },
+    { title: 'Offers section', href: '/#offers', action: null, copy: 'Special offers destination' },
+    { title: 'Accommodation', href: '/#accommodation', action: null, copy: 'Apartment rooms section' },
+    { title: 'Contact / Booking', href: '/#contact', action: null, copy: 'Phone and WhatsApp booking' },
   ];
 
   return (
-    <div>
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">Dashboard Overview</h2>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className={`mb-2 inline-flex rounded-lg p-2 text-lg ${c.color}`}>{c.icon}</div>
-            <p className="text-2xl font-bold text-gray-900">{c.value}</p>
-            <p className="text-xs text-gray-500">{c.label}</p>
-          </div>
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          ['Magazine posts', counts.posts],
+          ['Menu items', counts.items],
+          ['Categories', counts.categories],
+          ['Events', counts.events],
+          ['Apartments', counts.apartments],
+        ].map(([label, value]) => (
+          <Panel key={label as string}>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{label}</p>
+            <p className="mt-3 font-[var(--font-heading)] text-5xl font-semibold">{value}</p>
+          </Panel>
         ))}
       </div>
-      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-2 font-semibold text-gray-900">Connection</h3>
-        <p className="text-sm text-gray-500">API endpoint: <span className="font-mono text-gray-800">{apiBase}</span></p>
-        <p className="mt-1 text-sm text-gray-500">Admin login: <span className="font-mono text-gray-800">admin@elclassico.rw</span></p>
-      </div>
+
+      <Panel>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">Real destinations</p>
+            <h3 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold">
+              Clickable website links
+            </h3>
+          </div>
+          <p className="max-w-xl text-sm leading-6 text-slate-500">
+            Every View or Learn More link points to a live page or a real section on the public site.
+          </p>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {destinations.map((item) => (
+            <article key={item.href} className="rounded-2xl border border-slate-200 p-4">
+              <h4 className="font-semibold text-slate-900">{item.title}</h4>
+              <p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">{item.copy}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href={item.href}
+                  className="rounded-full bg-abyss px-3 py-1.5 text-xs font-bold text-gold"
+                >
+                  View
+                </a>
+                {item.action ? (
+                  <button
+                    type="button"
+                    onClick={() => setActive(item.action!)}
+                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600"
+                  >
+                    Manage
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      </Panel>
     </div>
   );
 }
 
-// ── Blog ─────────────────────────────────────────────────────────────────────
-function BlogTab({ token }: { token: string }) {
+function MagazineTab({ token }: { token: string }) {
+  const blank = { title: '', excerpt: '', content: '', coverImage: '', published: true };
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [editing, setEditing] = useState<BlogPost | null>(null);
-  const [form, setForm] = useState({ title: '', excerpt: '', content: '', coverImage: '', published: false });
+  const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
+  const [status, setStatus] = useState<Status>(null);
 
   async function load() {
-    try { const data = await apiFetch('/blog/all', token); setPosts(Array.isArray(data) ? data : []); } catch {}
+    try {
+      setPosts(await request<BlogPost[]>('/blog/all', {}, token));
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Could not load posts.' });
+    }
   }
-  useEffect(() => { void load(); }, [token]);
 
-  function startNew() { setEditing(null); setForm({ title: '', excerpt: '', content: '', coverImage: '', published: false }); }
-  function startEdit(p: BlogPost) { setEditing(p); setForm({ title: p.title, excerpt: p.excerpt, content: p.content, coverImage: p.coverImage ?? '', published: p.published }); }
+  useEffect(() => {
+    void load();
+  }, [token]);
+
+  function startEdit(post: BlogPost) {
+    setEditing(post);
+    setForm({
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      coverImage: post.coverImage ?? '',
+      published: post.published,
+    });
+  }
 
   async function save() {
-    if (!form.title || !form.excerpt || !form.content) { setMsg('Title, excerpt and content are required'); return; }
-    setBusy(true); setMsg('');
+    if (!form.title.trim() || form.excerpt.trim().length < 10 || form.content.trim().length < 10) {
+      setStatus({ type: 'error', text: 'Title, excerpt, and content are required. Excerpt/content need at least 10 characters.' });
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
     try {
-      if (editing) await apiFetch(`/blog/${editing.id}`, token, { method: 'PATCH', body: JSON.stringify(form) });
-      else await apiFetch('/blog', token, { method: 'POST', body: JSON.stringify(form) });
-      setMsg(editing ? 'Post updated.' : 'Post published.'); startNew(); void load();
-    } catch (e) { setMsg(e instanceof Error ? e.message : 'Save failed'); }
-    finally { setBusy(false); }
+      const body = JSON.stringify({
+        ...form,
+        title: form.title.trim(),
+        excerpt: form.excerpt.trim(),
+        content: form.content.trim(),
+        coverImage: form.coverImage.trim() || undefined,
+      });
+      if (editing) {
+        await request(`/blog/${editing.id}`, { method: 'PATCH', body }, token);
+      } else {
+        await request('/blog', { method: 'POST', body }, token);
+      }
+      setStatus({ type: 'success', text: editing ? 'Magazine post updated.' : 'Magazine post created.' });
+      setEditing(null);
+      setForm(blank);
+      await load();
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Save failed.' });
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function remove(id: string) {
-    if (!confirm('Delete this post?')) return;
-    try { await apiFetch(`/blog/${id}`, token, { method: 'DELETE' }); void load(); } catch {}
+  async function toggle(post: BlogPost) {
+    await request(`/blog/${post.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ published: !post.published }),
+    }, token);
+    await load();
   }
 
-  async function togglePublish(p: BlogPost) {
-    try { await apiFetch(`/blog/${p.id}`, token, { method: 'PATCH', body: JSON.stringify({ published: !p.published }) }); void load(); } catch {}
+  async function remove(post: BlogPost) {
+    if (!window.confirm(`Delete "${post.title}"?`)) return;
+    await request(`/blog/${post.id}`, { method: 'DELETE' }, token);
+    await load();
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Blog Posts</h2>
-        <button onClick={startNew} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">+ New Post</button>
-      </div>
-
-      {/* Editor */}
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 font-semibold text-gray-900">{editing ? 'Edit Post' : 'Write New Post'}</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Title *</label>
-            <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Post title..." />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Cover Image URL</label>
-            <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.coverImage} onChange={(e) => setForm({ ...form, coverImage: e.target.value })} placeholder="https://..." />
-          </div>
-        </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-medium text-gray-600">Excerpt *</label>
-          <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} placeholder="Short description shown in the blog list..." />
-        </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-medium text-gray-600">Content *</label>
-          <textarea rows={8} className="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder="Write your full article here..." />
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} className="h-4 w-4 accent-amber-500" />
-            Publish immediately
+    <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+      <Panel>
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">El Classico Magazine</p>
+        <h3 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold">
+          {editing ? 'Edit update' : 'Post a new update'}
+        </h3>
+        <div className="mt-6 space-y-4">
+          <Field label="Title">
+            <input
+              value={form.title}
+              onChange={(event) => setForm({ ...form, title: event.target.value })}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold"
+              placeholder="Weekend at El Classico Beach"
+            />
+          </Field>
+          <Field label="Excerpt">
+            <input
+              value={form.excerpt}
+              onChange={(event) => setForm({ ...form, excerpt: event.target.value })}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold"
+              placeholder="Short summary shown on the magazine page"
+            />
+          </Field>
+          <Field label="Cover image URL" hint="Use a Cloudinary URL from Media or another approved image URL.">
+            <input
+              value={form.coverImage}
+              onChange={(event) => setForm({ ...form, coverImage: event.target.value })}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold"
+              placeholder="https://res.cloudinary.com/..."
+            />
+          </Field>
+          <Field label="Article content">
+            <textarea
+              rows={10}
+              value={form.content}
+              onChange={(event) => setForm({ ...form, content: event.target.value })}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold"
+              placeholder="Write the full El Classico Beach update..."
+            />
+          </Field>
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.published}
+              onChange={(event) => setForm({ ...form, published: event.target.checked })}
+              className="h-4 w-4 accent-gold"
+            />
+            Publish on El Classico Magazine
           </label>
-          <button onClick={save} disabled={busy} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60">
-            {busy ? 'Saving...' : editing ? 'Update Post' : 'Publish Post'}
+        </div>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="rounded-2xl bg-abyss px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-gold disabled:opacity-60"
+          >
+            {busy ? 'Saving...' : editing ? 'Update post' : 'Publish post'}
           </button>
-          {editing && <button onClick={startNew} className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>}
+          {editing ? (
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setForm(blank);
+              }}
+              className="rounded-2xl bg-slate-100 px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500"
+            >
+              Cancel
+            </button>
+          ) : null}
+          <a
+            href="/blog"
+            className="rounded-2xl border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-600"
+          >
+            View Magazine
+          </a>
         </div>
-        {msg && <p className="mt-2 text-sm text-amber-600">{msg}</p>}
-      </div>
+        <StatusNote status={status} />
+      </Panel>
 
-      {/* List */}
-      <div className="space-y-3">
-        {posts.map((p) => (
-          <div key={p.id} className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            {p.coverImage && <img src={p.coverImage} alt="" className="h-16 w-24 flex-shrink-0 rounded-lg object-cover" />}
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${p.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {p.published ? 'Published' : 'Draft'}
-                </span>
-                <span className="text-xs text-gray-400">{new Date(p.createdAt).toLocaleDateString()}</span>
-              </div>
-              <h4 className="mt-1 font-semibold text-gray-900">{p.title}</h4>
-              <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">{p.excerpt}</p>
-            </div>
-            <div className="flex flex-shrink-0 flex-wrap gap-2">
-              <button onClick={() => togglePublish(p)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50">
-                {p.published ? 'Unpublish' : 'Publish'}
-              </button>
-              <button onClick={() => startEdit(p)} className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs text-amber-600 hover:bg-amber-50">Edit</button>
-              <button onClick={() => remove(p.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50">Delete</button>
-            </div>
-          </div>
-        ))}
-        {posts.length === 0 && <p className="py-8 text-center text-sm text-gray-400">No blog posts yet. Write your first one above.</p>}
-      </div>
-    </div>
-  );
-}
-
-// ── Menu ─────────────────────────────────────────────────────────────────────
-function MenuTab({ token }: { token: string }) {
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [editing, setEditing] = useState<MenuItem | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', basePrice: '', isAvailable: true });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
-
-  async function load() { try { const data = await apiFetch('/menu', token); setItems(Array.isArray(data) ? data : []); } catch {} }
-  useEffect(() => { void load(); }, [token]);
-
-  function startEdit(item: MenuItem) { setEditing(item); setForm({ title: item.title, description: item.description, basePrice: item.basePrice, isAvailable: item.isAvailable }); }
-  function startNew() { setEditing(null); setForm({ title: '', description: '', basePrice: '', isAvailable: true }); }
-
-  async function save() {
-    setBusy(true); setMsg('');
-    try {
-      const body = { ...form, basePrice: parseFloat(form.basePrice) || 0 };
-      if (editing) await apiFetch(`/menu/${editing.id}`, token, { method: 'PATCH', body: JSON.stringify(body) });
-      else await apiFetch('/menu', token, { method: 'POST', body: JSON.stringify(body) });
-      setMsg(editing ? 'Updated.' : 'Created.'); startNew(); void load();
-    } catch (e) { setMsg(e instanceof Error ? e.message : 'Save failed'); }
-    finally { setBusy(false); }
-  }
-
-  async function remove(id: string) {
-    if (!confirm('Delete this item?')) return;
-    try { await apiFetch(`/menu/${id}`, token, { method: 'DELETE' }); void load(); } catch {}
-  }
-
-  return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Menu Items</h2>
-        <button onClick={startNew} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">+ Add Item</button>
-      </div>
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 font-semibold text-gray-900">{editing ? 'Edit Item' : 'New Item'}</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Title</label>
-            <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Price (RWF)</label>
-            <input type="number" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: e.target.value })} />
-          </div>
-        </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-medium text-gray-600">Description</label>
-          <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={form.isAvailable} onChange={(e) => setForm({ ...form, isAvailable: e.target.checked })} className="h-4 w-4 accent-amber-500" />
-            Available
-          </label>
-          <button onClick={save} disabled={busy} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60">
-            {busy ? 'Saving...' : editing ? 'Update' : 'Add Item'}
-          </button>
-          {editing && <button onClick={startNew} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600">Cancel</button>}
-        </div>
-        {msg && <p className="mt-2 text-sm text-amber-600">{msg}</p>}
-      </div>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Item</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Price</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {items.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-gray-900">{item.title}</p>
-                  <p className="text-xs text-gray-500">{item.description}</p>
-                </td>
-                <td className="px-4 py-3 text-gray-700">{Number(item.basePrice).toLocaleString()} RWF</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${item.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {item.isAvailable ? 'Available' : 'Unavailable'}
+      <Panel>
+        <h3 className="font-[var(--font-heading)] text-4xl font-semibold">All magazine posts</h3>
+        <div className="mt-5 space-y-3">
+          {posts.map((post) => (
+            <article key={post.id} className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex flex-col gap-4 md:flex-row">
+                {post.coverImage ? (
+                  <img src={post.coverImage} alt="" className="aspect-square w-full rounded-2xl object-cover md:w-28" />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <span
+                    className={cx(
+                      'rounded-full px-3 py-1 text-xs font-bold',
+                      post.published ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500',
+                    )}
+                  >
+                    {post.published ? 'Published' : 'Draft'}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => startEdit(item)} className="mr-2 text-xs text-amber-600 hover:underline">Edit</button>
-                  <button onClick={() => remove(item.id)} className="text-xs text-red-500 hover:underline">Delete</button>
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No menu items yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+                  <h4 className="mt-3 font-semibold text-slate-900">{post.title}</h4>
+                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{post.excerpt}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => startEdit(post)} className="rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-abyss">
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => toggle(post)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                      {post.published ? 'Unpublish' : 'Publish'}
+                    </button>
+                    <button type="button" onClick={() => remove(post)} className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+          {posts.length === 0 ? <p className="py-10 text-center text-sm text-slate-400">No magazine posts yet.</p> : null}
+        </div>
+      </Panel>
     </div>
   );
 }
 
-// ── Events ───────────────────────────────────────────────────────────────────
-function EventsTab({ token }: { token: string }) {
-  const [items, setItems] = useState<EventItem[]>([]);
-  const [editing, setEditing] = useState<EventItem | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', startsAt: '', endsAt: '', coverImageUrl: '' });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
+function MenuTab({ token }: { token: string }) {
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [form, setForm] = useState({
+    categoryId: '',
+    title: '',
+    description: '',
+    basePrice: '',
+    imageUrl: '',
+    spiceLevel: '0',
+    pairingHint: '',
+    isAvailable: true,
+  });
+  const [status, setStatus] = useState<Status>(null);
+  const grouped = useMemo(() => {
+    return categories.map((category) => ({
+      ...category,
+      items: items.filter((item) => item.category === category.name),
+    }));
+  }, [categories, items]);
 
-  async function load() { try { const data = await apiFetch('/events', token); setItems(Array.isArray(data) ? data : []); } catch {} }
-  useEffect(() => { void load(); }, [token]);
+  async function load() {
+    const [nextCategories, nextItems] = await Promise.all([
+      request<MenuCategory[]>('/menu/categories'),
+      request<MenuItem[]>('/menu/items'),
+    ]);
+    setCategories(nextCategories);
+    setItems(nextItems);
+    setForm((current) => ({
+      ...current,
+      categoryId: current.categoryId || nextCategories[0]?.id || '',
+    }));
+  }
 
-  function startEdit(ev: EventItem) { setEditing(ev); setForm({ title: ev.title, description: ev.description, startsAt: ev.startsAt?.slice(0, 16) ?? '', endsAt: ev.endsAt?.slice(0, 16) ?? '', coverImageUrl: ev.coverImageUrl ?? '' }); }
-  function startNew() { setEditing(null); setForm({ title: '', description: '', startsAt: '', endsAt: '', coverImageUrl: '' }); }
+  useEffect(() => {
+    void load().catch((error) => setStatus({ type: 'error', text: error.message }));
+  }, []);
 
-  async function save() {
-    setBusy(true); setMsg('');
+  async function createItem() {
+    if (!form.categoryId || !form.title.trim() || !form.description.trim()) {
+      setStatus({ type: 'error', text: 'Choose a category and fill title/description.' });
+      return;
+    }
     try {
-      if (editing) await apiFetch(`/events/${editing.id}`, token, { method: 'PATCH', body: JSON.stringify(form) });
-      else await apiFetch('/events', token, { method: 'POST', body: JSON.stringify(form) });
-      setMsg(editing ? 'Updated.' : 'Created.'); startNew(); void load();
-    } catch (e) { setMsg(e instanceof Error ? e.message : 'Save failed'); }
-    finally { setBusy(false); }
+      await request('/menu/items', {
+        method: 'POST',
+        body: JSON.stringify({
+          categoryId: form.categoryId,
+          title: form.title.trim(),
+          description: form.description.trim(),
+          basePrice: Number(form.basePrice) || 0,
+          imageUrl: form.imageUrl.trim() || undefined,
+          spiceLevel: Number(form.spiceLevel) || 0,
+          pairingHint: form.pairingHint.trim() || undefined,
+          isAvailable: form.isAvailable,
+        }),
+      }, token);
+      setStatus({ type: 'success', text: 'Menu item added to the selected category.' });
+      setForm((current) => ({ ...current, title: '', description: '', basePrice: '', imageUrl: '', pairingHint: '' }));
+      await load();
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Could not create menu item.' });
+    }
   }
 
-  async function remove(id: string) {
-    if (!confirm('Delete this event?')) return;
-    try { await apiFetch(`/events/${id}`, token, { method: 'DELETE' }); void load(); } catch {}
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+      <Panel>
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">Menu manager</p>
+        <h3 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold">Add food or drink</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-500">
+          Categories are real backend categories. Select one, create the item, and it becomes available through the menu API.
+        </p>
+        <div className="mt-6 space-y-4">
+          <Field label="Category">
+            <select
+              value={form.categoryId}
+              onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold"
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Title">
+            <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" />
+          </Field>
+          <Field label="Description">
+            <textarea rows={4} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" />
+          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Price RWF">
+              <input type="number" value={form.basePrice} onChange={(event) => setForm({ ...form, basePrice: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" />
+            </Field>
+            <Field label="Spice level">
+              <input type="number" min={0} value={form.spiceLevel} onChange={(event) => setForm({ ...form, spiceLevel: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" />
+            </Field>
+          </div>
+          <Field label="Image URL">
+            <input value={form.imageUrl} onChange={(event) => setForm({ ...form, imageUrl: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" />
+          </Field>
+          <Field label="Pairing hint">
+            <input value={form.pairingHint} onChange={(event) => setForm({ ...form, pairingHint: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" />
+          </Field>
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+            <input type="checkbox" checked={form.isAvailable} onChange={(event) => setForm({ ...form, isAvailable: event.target.checked })} className="h-4 w-4 accent-gold" />
+            Available publicly
+          </label>
+        </div>
+        <button type="button" onClick={createItem} className="mt-5 rounded-2xl bg-abyss px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-gold">
+          Add item
+        </button>
+        <StatusNote status={status} />
+      </Panel>
+
+      <Panel>
+        <h3 className="font-[var(--font-heading)] text-4xl font-semibold">Real categories</h3>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {grouped.map((category) => (
+            <article key={category.id} className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-semibold text-slate-900">{category.name}</h4>
+                  <p className="text-xs text-slate-400">/{category.slug}</p>
+                </div>
+                <a href="/#offers" className="rounded-full bg-abyss px-3 py-1.5 text-xs font-bold text-gold">View</a>
+              </div>
+              <div className="mt-4 space-y-2">
+                {category.items.map((item) => (
+                  <div key={item.id} className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                    <p className="text-xs text-slate-500">{Number(item.basePrice).toLocaleString()} RWF</p>
+                  </div>
+                ))}
+                {category.items.length === 0 ? <p className="text-sm text-slate-400">No items yet.</p> : null}
+              </div>
+            </article>
+          ))}
+          {categories.length === 0 ? (
+            <p className="col-span-2 rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
+              No categories are configured in the backend yet. Add backend categories first, then menu items can attach to them.
+            </p>
+          ) : null}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function EventsTab({ token }: { token: string }) {
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [form, setForm] = useState({ title: '', description: '', startsAt: '', endsAt: '', coverImageUrl: '' });
+  const [status, setStatus] = useState<Status>(null);
+
+  async function load() {
+    setEvents(await request<EventItem[]>('/events'));
+  }
+
+  useEffect(() => {
+    void load().catch((error) => setStatus({ type: 'error', text: error.message }));
+  }, []);
+
+  async function createEvent() {
+    try {
+      await request('/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          startsAt: new Date(form.startsAt).toISOString(),
+          endsAt: new Date(form.endsAt).toISOString(),
+          coverImageUrl: form.coverImageUrl.trim() || undefined,
+        }),
+      }, token);
+      setStatus({ type: 'success', text: 'Event created.' });
+      setForm({ title: '', description: '', startsAt: '', endsAt: '', coverImageUrl: '' });
+      await load();
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Could not create event.' });
+    }
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Events</h2>
-        <button onClick={startNew} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">+ New Event</button>
-      </div>
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 font-semibold text-gray-900">{editing ? 'Edit Event' : 'New Event'}</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Title</label>
-            <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+    <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+      <Panel>
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">Events</p>
+        <h3 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold">Create event</h3>
+        <div className="mt-6 space-y-4">
+          <Field label="Title"><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" /></Field>
+          <Field label="Description"><textarea rows={4} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" /></Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Starts"><input type="datetime-local" value={form.startsAt} onChange={(event) => setForm({ ...form, startsAt: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" /></Field>
+            <Field label="Ends"><input type="datetime-local" value={form.endsAt} onChange={(event) => setForm({ ...form, endsAt: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" /></Field>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Cover Image URL</label>
-            <input className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.coverImageUrl} onChange={(e) => setForm({ ...form, coverImageUrl: e.target.value })} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Starts At</label>
-            <input type="datetime-local" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Ends At</label>
-            <input type="datetime-local" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} />
-          </div>
+          <Field label="Cover image URL"><input value={form.coverImageUrl} onChange={(event) => setForm({ ...form, coverImageUrl: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" /></Field>
         </div>
-        <div className="mt-3">
-          <label className="mb-1 block text-xs font-medium text-gray-600">Description</label>
-          <textarea rows={3} className="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <button type="button" onClick={createEvent} className="mt-5 rounded-2xl bg-abyss px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-gold">
+          Create event
+        </button>
+        <StatusNote status={status} />
+      </Panel>
+      <Panel>
+        <h3 className="font-[var(--font-heading)] text-4xl font-semibold">Upcoming events</h3>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {events.map((event) => (
+            <article key={event.id} className="rounded-2xl border border-slate-200 p-4">
+              {event.coverImageUrl ? <img src={event.coverImageUrl} alt="" className="mb-4 aspect-square w-full rounded-2xl object-cover" /> : null}
+              <h4 className="font-semibold">{event.title}</h4>
+              <p className="mt-1 text-xs text-slate-400">{new Date(event.startsAt).toLocaleString()}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-500">{event.description}</p>
+            </article>
+          ))}
+          {events.length === 0 ? <p className="col-span-2 py-10 text-center text-sm text-slate-400">No events yet.</p> : null}
         </div>
-        <div className="mt-3 flex gap-3">
-          <button onClick={save} disabled={busy} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60">
-            {busy ? 'Saving...' : editing ? 'Update' : 'Create Event'}
-          </button>
-          {editing && <button onClick={startNew} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600">Cancel</button>}
-        </div>
-        {msg && <p className="mt-2 text-sm text-amber-600">{msg}</p>}
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {items.map((ev) => (
-          <div key={ev.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            {ev.coverImageUrl && <img src={ev.coverImageUrl} alt="" className="mb-3 h-36 w-full rounded-lg object-cover" />}
-            <h4 className="font-semibold text-gray-900">{ev.title}</h4>
-            <p className="mt-1 text-xs text-gray-500">{new Date(ev.startsAt).toLocaleString()} to {new Date(ev.endsAt).toLocaleString()}</p>
-            <p className="mt-1 line-clamp-2 text-sm text-gray-600">{ev.description}</p>
-            <div className="mt-3 flex gap-2">
-              <button onClick={() => startEdit(ev)} className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs text-amber-600 hover:bg-amber-50">Edit</button>
-              <button onClick={() => remove(ev.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50">Delete</button>
-            </div>
-          </div>
-        ))}
-        {items.length === 0 && <p className="col-span-2 py-8 text-center text-sm text-gray-400">No events yet.</p>}
-      </div>
+      </Panel>
     </div>
   );
 }
 
-// ── Apartments ───────────────────────────────────────────────────────────────
-function ApartmentsTab({ token }: { token: string }) {
-  const [items, setItems] = useState<ApartmentItem[]>([]);
-  useEffect(() => {
-    apiFetch('/apartments', token).then((data) => setItems(Array.isArray(data) ? data : [])).catch(() => {});
-  }, [token]);
-  return (
-    <div>
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">Apartments</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((apt) => (
-          <div key={apt.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            {apt.coverImageUrl && <img src={apt.coverImageUrl} alt="" className="mb-3 h-40 w-full rounded-lg object-cover" />}
-            <h4 className="font-semibold text-gray-900">{apt.name}</h4>
-            <p className="mt-1 line-clamp-3 text-sm text-gray-500">{apt.description}</p>
-          </div>
-        ))}
-        {items.length === 0 && <p className="col-span-3 py-8 text-center text-sm text-gray-400">No apartments configured yet.</p>}
-      </div>
-    </div>
-  );
-}
-
-// ── Reservations ─────────────────────────────────────────────────────────────
-function ReservationsTab({ token }: { token: string }) {
-  const [items, setItems] = useState<ReservationItem[]>([]);
-  useEffect(() => {
-    apiFetch('/reservations', token).then((data) => setItems(Array.isArray(data) ? data : [])).catch(() => {});
-  }, [token]);
-  return (
-    <div>
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">Reservations</h2>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Guest</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Date</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Guests</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Zone</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Notes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {items.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-gray-900">{r.user?.fullName ?? 'Unknown'}</p>
-                  <p className="text-xs text-gray-500">{r.user?.email}</p>
-                </td>
-                <td className="px-4 py-3 text-gray-700">{new Date(r.reservationAt).toLocaleString()}</td>
-                <td className="px-4 py-3 text-gray-700">{r.guests}</td>
-                <td className="px-4 py-3 text-gray-700">{r.zone ?? '—'}</td>
-                <td className="px-4 py-3 text-xs text-gray-500">{r.notes ?? '—'}</td>
-              </tr>
-            ))}
-            {items.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No reservations yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ── Media ─────────────────────────────────────────────────────────────────────
 function MediaTab({ token }: { token: string }) {
-  const [folder, setFolder] = useState<(typeof mediaFolders)[number]>('bar-overview');
+  const [folder, setFolder] = useState<(typeof mediaFolders)[number]>('blog');
   const [resources, setResources] = useState<MediaResource[]>([]);
   const [file, setFile] = useState<File | null>(null);
+  const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
 
   async function load() {
-    try { const data = await apiFetch(`/admin/media?folder=${encodeURIComponent(folder)}`, token); setResources(data.resources ?? []); } catch {}
+    const payload = await request<{ resources?: MediaResource[] }>(`/admin/media?folder=${encodeURIComponent(folder)}`, {}, token);
+    setResources(payload.resources ?? []);
   }
-  useEffect(() => { void load(); }, [token, folder]);
+
+  useEffect(() => {
+    void load().catch((error) => setStatus({ type: 'error', text: error.message }));
+  }, [folder, token]);
 
   async function upload() {
     if (!file) return;
-    setBusy(true); setMsg('');
+    const body = new FormData();
+    body.append('file', file);
+    body.append('folder', folder);
+    setBusy(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file); fd.append('folder', folder);
-      const res = await fetch(`${apiBase}/admin/media/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
-      if (!res.ok) throw new Error('Upload failed');
-      setFile(null); setMsg('Uploaded.'); void load();
-    } catch (e) { setMsg(e instanceof Error ? e.message : 'Upload failed'); }
-    finally { setBusy(false); }
+      await request('/admin/media/upload', { method: 'POST', body }, token);
+      setFile(null);
+      setStatus({ type: 'success', text: 'Image uploaded. Copy its URL for homepage or magazine content.' });
+      await load();
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Upload failed.' });
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function removeMedia(publicId: string) {
-    try { await fetch(`${apiBase}/admin/media?publicId=${encodeURIComponent(publicId)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }); void load(); } catch {}
+  async function remove(publicId: string) {
+    if (!window.confirm('Delete this image from Cloudinary?')) return;
+    await request(`/admin/media?publicId=${encodeURIComponent(publicId)}`, { method: 'DELETE' }, token);
+    await load();
   }
 
   return (
-    <div>
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">Media Gallery</h2>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {mediaFolders.map((f) => (
-          <button key={f} onClick={() => setFolder(f)} className={`rounded-full px-4 py-1.5 text-sm transition ${folder === f ? 'bg-amber-500 font-semibold text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-100'}`}>
-            {f}
+    <div className="space-y-6">
+      <Panel>
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">Media library</p>
+        <h3 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold">Upload images</h3>
+        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end">
+          <Field label="Folder">
+            <select value={folder} onChange={(event) => setFolder(event.target.value as (typeof mediaFolders)[number])} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold lg:w-72">
+              {mediaFolders.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </Field>
+          <Field label="Image file">
+            <input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm" />
+          </Field>
+          <button type="button" onClick={upload} disabled={busy || !file} className="rounded-2xl bg-abyss px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-gold disabled:opacity-60">
+            {busy ? 'Uploading...' : 'Upload'}
           </button>
-        ))}
-      </div>
-      <div className="mb-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="flex-1 text-sm text-gray-600" />
-        <button onClick={upload} disabled={busy || !file} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60">{busy ? 'Uploading...' : 'Upload'}</button>
-        <button onClick={load} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Refresh</button>
-      </div>
-      {msg && <p className="mb-3 text-sm text-amber-600">{msg}</p>}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {resources.map((r) => (
-          <div key={r.publicId} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <img src={r.secureUrl} alt="" className="h-48 w-full object-cover" />
-            <div className="p-3">
-              <p className="line-clamp-1 text-xs text-gray-500">{r.publicId}</p>
-              <div className="mt-2 flex gap-2">
-                <button onClick={() => navigator.clipboard.writeText(r.secureUrl)} className="rounded-lg border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50">Copy URL</button>
-                <button onClick={() => removeMedia(r.publicId)} className="rounded-lg border border-red-200 px-3 py-1 text-xs text-red-500 hover:bg-red-50">Delete</button>
+        </div>
+        <StatusNote status={status} />
+      </Panel>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {resources.map((resource) => (
+          <article key={resource.publicId} className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+            <img src={resource.secureUrl} alt="" className="aspect-square w-full object-cover" />
+            <div className="p-4">
+              <p className="truncate text-xs text-slate-400">{resource.publicId}</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={() => navigator.clipboard.writeText(resource.secureUrl)} className="rounded-full bg-abyss px-3 py-1.5 text-xs font-bold text-gold">Copy URL</button>
+                <button type="button" onClick={() => remove(resource.publicId)} className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600">Delete</button>
               </div>
             </div>
-          </div>
+          </article>
         ))}
-        {resources.length === 0 && <p className="col-span-3 py-8 text-center text-sm text-gray-400">No images in this folder yet.</p>}
       </div>
     </div>
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-export default function AdminPage() {
-  const [token, setToken] = useState('');
-  const [tab, setTab] = useState<Tab>('overview');
+function BusinessTab({ token }: { token: string }) {
+  const [apartments, setApartments] = useState<ApartmentItem[]>([]);
+  const [reservations, setReservations] = useState<ReservationItem[]>([]);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem('elclassico_admin_token');
-    if (stored) setToken(stored);
+    async function load() {
+      const [apartmentData, reservationData] = await Promise.allSettled([
+        request<ApartmentItem[]>('/apartments'),
+        request<ReservationItem[]>('/reservations', {}, token),
+      ]);
+      if (apartmentData.status === 'fulfilled') setApartments(apartmentData.value);
+      if (reservationData.status === 'fulfilled') setReservations(reservationData.value);
+    }
+    void load();
+  }, [token]);
+
+  return (
+    <div className="space-y-6">
+      <Panel>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-gold">Business</p>
+            <h3 className="mt-2 font-[var(--font-heading)] text-4xl font-semibold">Apartments and bookings</h3>
+          </div>
+          <a href="/#accommodation" className="rounded-2xl bg-abyss px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-gold">
+            View Accommodation
+          </a>
+        </div>
+      </Panel>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel>
+          <h4 className="font-[var(--font-heading)] text-3xl font-semibold">Apartments</h4>
+          <div className="mt-4 space-y-3">
+            {apartments.map((apartment) => (
+              <article key={apartment.id} className="rounded-2xl border border-slate-200 p-4">
+                <h5 className="font-semibold">{apartment.name}</h5>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{apartment.description}</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">
+                  {apartment.rooms?.length ?? 0} rooms
+                </p>
+              </article>
+            ))}
+            {apartments.length === 0 ? <p className="py-8 text-center text-sm text-slate-400">No apartments found.</p> : null}
+          </div>
+        </Panel>
+
+        <Panel>
+          <h4 className="font-[var(--font-heading)] text-3xl font-semibold">Reservations</h4>
+          <div className="mt-4 space-y-3">
+            {reservations.map((reservation) => (
+              <article key={reservation.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h5 className="font-semibold">{reservation.user?.fullName ?? 'Guest reservation'}</h5>
+                    <p className="text-xs text-slate-400">{reservation.user?.email ?? 'No email'}</p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                    {reservation.guests} guests
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-slate-500">{new Date(reservation.reservationAt).toLocaleString()}</p>
+                <p className="mt-2 text-sm text-slate-500">{reservation.notes ?? reservation.zone ?? 'No notes'}</p>
+              </article>
+            ))}
+            {reservations.length === 0 ? <p className="py-8 text-center text-sm text-slate-400">No reservations yet.</p> : null}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminPage() {
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    setToken(window.localStorage.getItem('elclassico_admin_token') ?? '');
   }, []);
 
   function logout() {
@@ -601,19 +983,5 @@ export default function AdminPage() {
   }
 
   if (!token) return <LoginScreen onLogin={setToken} />;
-
-  return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar active={tab} setActive={setTab} onLogout={logout} />
-      <main className="flex-1 overflow-y-auto p-8">
-        {tab === 'overview' && <OverviewTab token={token} />}
-        {tab === 'blog' && <BlogTab token={token} />}
-        {tab === 'menu' && <MenuTab token={token} />}
-        {tab === 'events' && <EventsTab token={token} />}
-        {tab === 'apartments' && <ApartmentsTab token={token} />}
-        {tab === 'reservations' && <ReservationsTab token={token} />}
-        {tab === 'media' && <MediaTab token={token} />}
-      </main>
-    </div>
-  );
+  return <Shell token={token} onLogout={logout} />;
 }

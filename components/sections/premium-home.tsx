@@ -31,9 +31,11 @@ const images = {
 const navItems = [
   ['Home', '#home'],
   ['About', '#about'],
+  ['Categories', '#categories'],
   ['Offers', '#offers'],
   ['Legacy', '#legacy'],
   ['Accommodation', '#accommodation'],
+  ['Magazine', '/blog'],
   ['Contact', '#contact'],
 ] as const;
 
@@ -310,6 +312,46 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
+      <section id="categories" className="bg-cream px-5 py-20 lg:px-12 lg:py-24">
+        <div className="mx-auto max-w-[1320px]">
+          <Reveal>
+            <UnderlineTitle
+              centered
+              title="El Classico categories"
+              eyebrow="Choose a real destination"
+            />
+            <p className="mx-auto mt-8 max-w-3xl text-center text-lg leading-9 text-slate-700">
+              Every category opens the real destination on the website so visitors can quickly reach food,
+              rooms, offers, events, magazine updates, and booking contact.
+            </p>
+          </Reveal>
+          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              ['Bar and Restaurant', '#offers', 'Fish, chicken, drinks, milkshakes, mango juice, and beach dining.'],
+              ['El Classico Apartment', '#accommodation', 'Rooms, breakfast, long-stay comfort, and Lake Kivu travel support.'],
+              ['Events and Parties', '#contact', 'Birthdays, parties, celebrations, swimming, and group preparation.'],
+              ['El Classico Magazine', '/blog', 'News, updates, announcements, and stories from El Classico Beach.'],
+            ].map(([title, href, copy], index) => (
+              <Reveal key={title} delay={index * 0.06}>
+                <a
+                  href={href}
+                  className="group block min-h-[250px] border border-abyss/10 bg-white p-7 transition duration-500 hover:-translate-y-1 hover:border-gold hover:shadow-[0_28px_90px_rgba(8,27,42,0.12)]"
+                >
+                  <p className="font-[var(--font-heading)] text-5xl leading-none text-gold">0{index + 1}</p>
+                  <h3 className="mt-8 font-[var(--font-heading)] text-4xl leading-none text-abyss">
+                    {title}
+                  </h3>
+                  <p className="mt-5 text-sm leading-7 text-slate-600">{copy}</p>
+                  <p className="mt-7 text-xs font-black uppercase tracking-[0.24em] text-ocean">
+                    View destination
+                  </p>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="offers" className="bg-white px-5 py-20 lg:px-12 lg:py-28">
         <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-2">
           <Reveal>
@@ -331,7 +373,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
               Featured now: {firstMenuItem}
             </p>
             <div className="mt-8">
-              <GoldButton href="#legacy">View Offers</GoldButton>
+              <GoldButton href="#accommodation">View Offers</GoldButton>
             </div>
           </Reveal>
         </div>
@@ -435,7 +477,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
               prepared events like birthdays, parties, and many other celebrations.
             </p>
             <div className="mt-8">
-              <GoldButton href="#contact">Learn More</GoldButton>
+              <GoldButton href="/blog">Learn More</GoldButton>
             </div>
           </Reveal>
           <div className="grid grid-cols-2 gap-5">
@@ -504,6 +546,9 @@ export function PremiumHome({ data }: PremiumHomeProps) {
             <p className="mt-5 text-sm leading-7 text-white/70">
               Rubavu Gisenyi, Western Province, Nyamyumba, near New Port.
             </p>
+            <a className="mt-5 inline-block text-sm font-bold text-gold" href="/blog">
+              El Classico Magazine
+            </a>
           </div>
         </div>
         <div className="mx-auto mt-12 max-w-[1320px] border-t border-white/10 pt-6 text-xs uppercase tracking-[0.24em] text-white/40">
