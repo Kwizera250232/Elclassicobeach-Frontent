@@ -6,6 +6,7 @@ const config: Config = {
     extend: {
       colors: {
         sand: '#dbc89a',
+        cream: '#f7efe0',
         ocean: '#0f3b57',
         abyss: '#081b2a',
         sunset: '#f19658',

@@ -4,11 +4,17 @@
 
 :root {
   --color-sand: #dbc89a;
+  --color-cream: #f7efe0;
   --color-ocean: #0f3b57;
   --color-abyss: #081b2a;
   --color-sunset: #f19658;
   --color-coral: #df6e47;
   --color-gold: #d9aa4b;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: #030a10;
 }
 
 * {
@@ -17,8 +23,10 @@
 
 body {
   margin: 0;
-  color: #111827;
-  background: #ffffff;
+  color: var(--color-abyss);
+  background: var(--color-cream);
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
 }
 
 body::before {
@@ -28,4 +36,22 @@ body::before {
 main {
   position: relative;
   z-index: 1;
+}
+
+::selection {
+  background: rgba(217, 170, 75, 0.35);
+  color: #081b2a;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030a10;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #d9aa4b, #0f3b57);
+  border-radius: 999px;
 }

@@ -15,15 +15,49 @@ const bodyFont = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'El Classico Beach | Bar, Restaurant and Apartment Stay',
+  metadataBase: new URL('https://elclassico.umunsi.com'),
+  title: {
+    default: 'El Classico Beach | Luxury Rubavu Resort, Restaurant & Apartments',
+    template: '%s | El Classico Beach',
+  },
   description:
-    'El Classico Beach Chez West combines bar, restaurant, nightlife, and apartment hospitality in one premium Lake Kivu destination.',
-  keywords: ['bar', 'restaurant', 'apartment', 'beach club', 'Lake Kivu', 'events', 'booking'],
+    'El Classico Beach Chez West is a premium Lake Kivu beach bar, restaurant, and apartment stay in Rubavu, Rwanda with dining, boat experiences, sunset nightlife, and modern hospitality.',
+  keywords: [
+    'Rubavu resort',
+    'Lake Kivu apartments',
+    'El Classico Beach',
+    'El Classico Beach Chez West',
+    'Rwanda beach restaurant',
+    'Rubavu apartments',
+    'Gisenyi restaurant',
+    'Lake Kivu restaurant',
+    'Rubavu beach bar',
+    'Rwanda luxury beach',
+  ],
   openGraph: {
-    title: 'El Classico Beach | Bar, Restaurant and Apartment Stay',
+    title: 'El Classico Beach | Luxury Rubavu Resort, Restaurant & Apartments',
     description:
-      'Premium dining, live events, and apartment hospitality in a standalone digital experience.',
+      'A cinematic Lake Kivu destination for beach dining, drinks, boat moments, nightlife, and modern apartment stays in Rubavu, Rwanda.',
+    url: 'https://elclassico.umunsi.com',
+    siteName: 'El Classico Beach',
+    images: [
+      {
+        url: 'https://res.cloudinary.com/do1zvhe3j/image/upload/v1777837390/elclassico/bar-overview/bny19igudahdbtyqh7eh.jpg',
+        width: 960,
+        height: 997,
+        alt: 'El Classico Beach Chez West',
+      },
+    ],
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'El Classico Beach | Luxury Rubavu Resort, Restaurant & Apartments',
+    description:
+      'Premium Lake Kivu beach bar, restaurant, and apartment hospitality in Rubavu, Rwanda.',
+    images: [
+      'https://res.cloudinary.com/do1zvhe3j/image/upload/v1777837390/elclassico/bar-overview/bny19igudahdbtyqh7eh.jpg',
+    ],
   },
   robots: {
     index: true,
