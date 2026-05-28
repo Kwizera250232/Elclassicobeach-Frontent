@@ -68,12 +68,6 @@ export default async function BlogRoute() {
             Updates from El Classico Beach Chez West and El Classico Apartment: food, offers, events,
             accommodations, Lake Kivu travel, and Rubavu beach stories.
           </p>
-          <a
-            href="/admin"
-            className="mt-9 inline-flex border border-gold bg-gold px-7 py-4 text-xs font-black uppercase tracking-[0.24em] text-abyss transition hover:bg-cream"
-          >
-            Admin posting
-          </a>
         </div>
       </section>
 
@@ -119,14 +113,8 @@ export default async function BlogRoute() {
                 No magazine updates yet.
               </h2>
               <p className="mt-5 text-slate-600">
-                Admins can post the first El Classico Magazine update from the dashboard.
+                New stories, offers, and announcements from El Classico Beach will appear here soon.
               </p>
-              <a
-                href="/admin"
-                className="mt-7 inline-flex border border-abyss bg-abyss px-6 py-3 text-xs font-black uppercase tracking-[0.22em] text-gold"
-              >
-                Open Admin Panel
-              </a>
             </div>
           )}
         </div>
