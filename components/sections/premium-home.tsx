@@ -90,7 +90,7 @@ function UnderlineTitle({
         </p>
       ) : null}
       <h2
-        className={`mt-4 font-[var(--font-heading)] text-5xl font-semibold leading-[0.98] tracking-[-0.045em] md:text-7xl ${
+        className={`mt-4 max-w-full break-words font-[var(--font-heading)] text-4xl font-semibold leading-[0.98] tracking-[-0.035em] sm:text-5xl md:text-7xl md:tracking-[-0.045em] ${
           light ? 'text-cream' : 'text-abyss'
         }`}
       >
@@ -116,7 +116,7 @@ function SquareImage({ src, alt, label, priority = false, className = '' }: Squa
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-80" />
       {label ? (
-        <p className="absolute bottom-5 left-5 right-5 text-[0.66rem] font-extrabold uppercase tracking-[0.28em] text-white">
+        <p className="absolute bottom-4 left-4 right-4 text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-white sm:bottom-5 sm:left-5 sm:right-5 sm:tracking-[0.28em]">
           {label}
         </p>
       ) : null}
@@ -128,7 +128,7 @@ function GoldButton({ href, children }: { href: string; children: React.ReactNod
   return (
     <a
       href={href}
-      className="inline-flex items-center justify-center rounded-none border border-gold bg-gold px-8 py-4 text-[0.68rem] font-extrabold uppercase tracking-[0.25em] text-abyss transition duration-500 hover:bg-abyss hover:text-gold"
+      className="inline-flex items-center justify-center rounded-none border border-gold bg-gold px-5 py-3 text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-abyss transition duration-500 hover:bg-abyss hover:text-gold sm:px-8 sm:py-4 sm:tracking-[0.25em]"
     >
       {children}
     </a>
@@ -139,7 +139,7 @@ function OutlineButton({ href, children }: { href: string; children: React.React
   return (
     <a
       href={href}
-      className="inline-flex items-center justify-center rounded-none border border-abyss px-7 py-3 text-[0.66rem] font-extrabold uppercase tracking-[0.22em] text-abyss transition duration-500 hover:border-gold hover:bg-gold"
+      className="inline-flex items-center justify-center rounded-none border border-abyss px-5 py-3 text-[0.64rem] font-extrabold uppercase tracking-[0.14em] text-abyss transition duration-500 hover:border-gold hover:bg-gold sm:px-7 sm:tracking-[0.22em]"
     >
       {children}
     </a>
@@ -194,8 +194,8 @@ export function PremiumHome({ data }: PremiumHomeProps) {
             : 'border-white/20 bg-black/20 text-white backdrop-blur-sm'
         }`}
       >
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-4 lg:px-12">
-          <a href="#home" className="font-[var(--font-heading)] text-3xl font-semibold tracking-[0.15em]">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-4 py-4 sm:px-5 lg:px-12">
+          <a href="#home" className="min-w-0 font-[var(--font-heading)] text-2xl font-semibold tracking-[0.1em] sm:text-3xl sm:tracking-[0.15em]">
             EL CLASSICO
           </a>
           <nav className="hidden items-center gap-8 lg:flex">
@@ -223,7 +223,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="border border-current px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] lg:hidden"
+            className="shrink-0 border border-current px-3 py-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] sm:px-4 sm:tracking-[0.22em] lg:hidden"
           >
             Menu
           </button>
@@ -246,19 +246,19 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         ) : null}
       </header>
 
-      <section id="home" className="relative overflow-hidden bg-abyss px-5 pb-20 pt-32 lg:px-12 lg:pb-28 lg:pt-40">
+      <section id="home" className="relative overflow-hidden bg-abyss px-4 pb-16 pt-28 sm:px-5 sm:pb-20 sm:pt-32 lg:px-12 lg:pb-28 lg:pt-40">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(217,170,75,0.18),transparent_30%)]" />
-        <div className="relative mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="relative mx-auto grid max-w-[1320px] items-center gap-9 sm:gap-12 lg:grid-cols-[0.9fr_1.1fr]">
           <Reveal className="order-2 text-center text-white lg:order-1 lg:text-left">
-            <p className="text-[0.72rem] font-bold uppercase tracking-[0.45em] text-gold">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-gold sm:text-[0.72rem] sm:tracking-[0.45em]">
               Rubavu • Lake Kivu • Nyamyumba
             </p>
-            <h1 className="mt-8 font-[var(--font-heading)] text-6xl font-semibold leading-[0.86] tracking-[-0.06em] md:text-8xl lg:text-[8.8rem]">
+            <h1 className="mt-7 max-w-full break-words font-[var(--font-heading)] text-[clamp(3.4rem,17vw,5.2rem)] font-semibold leading-[0.88] tracking-[-0.055em] md:text-8xl lg:text-[8.8rem]">
               El Classico Beach
-              <span className="mt-3 block text-3xl tracking-[-0.03em] text-cream md:text-5xl">
+              <span className="mt-3 block text-[clamp(1.75rem,8vw,2.7rem)] tracking-[-0.03em] text-cream md:text-5xl">
                 Bar and Restaurant
               </span>
-              <span className="mt-4 block text-4xl tracking-[-0.04em] text-gold md:text-6xl">
+              <span className="mt-4 block text-[clamp(2.1rem,10vw,3.4rem)] tracking-[-0.04em] text-gold md:text-6xl">
                 El Classico Apartment
               </span>
             </h1>
@@ -270,7 +270,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
               <GoldButton href="#about">Explore</GoldButton>
               <a
                 href="tel:+250783256132"
-                className="border border-white/45 px-8 py-4 text-[0.68rem] font-extrabold uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-abyss"
+                className="border border-white/45 px-5 py-3 text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-white transition hover:bg-white hover:text-abyss sm:px-8 sm:py-4 sm:tracking-[0.25em]"
               >
                 Book Now
               </a>
@@ -287,7 +287,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <section id="about" className="px-5 py-20 lg:px-12 lg:py-28">
+      <section id="about" className="px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-28">
         <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-2">
           <Reveal className="order-2 lg:order-1">
             <SquareImage
@@ -312,7 +312,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <section id="categories" className="bg-cream px-5 py-20 lg:px-12 lg:py-24">
+      <section id="categories" className="bg-cream px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-24">
         <div className="mx-auto max-w-[1320px]">
           <Reveal>
             <UnderlineTitle
@@ -335,7 +335,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
               <Reveal key={title} delay={index * 0.06}>
                 <a
                   href={href}
-                  className="group block min-h-[250px] border border-abyss/10 bg-white p-7 transition duration-500 hover:-translate-y-1 hover:border-gold hover:shadow-[0_28px_90px_rgba(8,27,42,0.12)]"
+                  className="group block min-h-[220px] border border-abyss/10 bg-white p-5 transition duration-500 hover:-translate-y-1 hover:border-gold hover:shadow-[0_28px_90px_rgba(8,27,42,0.12)] sm:min-h-[250px] sm:p-7"
                 >
                   <p className="font-[var(--font-heading)] text-5xl leading-none text-gold">0{index + 1}</p>
                   <h3 className="mt-8 font-[var(--font-heading)] text-4xl leading-none text-abyss">
@@ -352,7 +352,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <section id="offers" className="bg-white px-5 py-20 lg:px-12 lg:py-28">
+      <section id="offers" className="bg-white px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-28">
         <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-2">
           <Reveal>
             <SquareImage
@@ -379,7 +379,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <section id="legacy" className="bg-cream px-5 py-20 lg:px-12 lg:py-28">
+      <section id="legacy" className="bg-cream px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-[1320px]">
           <Reveal>
             <UnderlineTitle
@@ -432,7 +432,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <section id="accommodation" className="bg-abyss px-5 py-20 lg:px-12 lg:py-28">
+      <section id="accommodation" className="bg-abyss px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-[1320px]">
           <Reveal>
             <UnderlineTitle
@@ -467,7 +467,7 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <section className="bg-white px-5 py-20 lg:px-12 lg:py-28">
+      <section className="bg-white px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-28">
         <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-[0.92fr_1.08fr]">
           <Reveal>
             <UnderlineTitle title="El Classico Beach Chez West best choice" eyebrow="Why guests choose us" />
@@ -480,21 +480,21 @@ export function PremiumHome({ data }: PremiumHomeProps) {
               <GoldButton href="/blog">Learn More</GoldButton>
             </div>
           </Reveal>
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid gap-5 sm:grid-cols-2">
             <Reveal>
               <SquareImage src={images.kigaliFishTwo} alt="El Classico fish" label="Good fish" />
             </Reveal>
             <Reveal delay={0.08}>
               <SquareImage src={images.apartmentBreakfast} alt="El Classico apartment" label="Accommodation" />
             </Reveal>
-            <Reveal delay={0.16} className="col-span-2">
+            <Reveal delay={0.16} className="sm:col-span-2">
               <SquareImage src={images.kigaliFishOne} alt="El Classico restaurant" label="Bar and Restaurant" />
             </Reveal>
           </div>
         </div>
       </section>
 
-      <section id="contact" className="bg-cream px-5 py-20 lg:px-12 lg:py-28">
+      <section id="contact" className="bg-cream px-4 py-16 sm:px-5 sm:py-20 lg:px-12 lg:py-28">
         <div className="mx-auto grid max-w-[1320px] gap-12 lg:grid-cols-[1fr_0.8fr]">
           <Reveal>
             <UnderlineTitle title="Contact Us" eyebrow="For booking and information" />
@@ -523,10 +523,10 @@ export function PremiumHome({ data }: PremiumHomeProps) {
         </div>
       </section>
 
-      <footer className="bg-[#030a10] px-5 py-16 text-white lg:px-12">
+      <footer className="bg-[#030a10] px-4 py-14 text-white sm:px-5 sm:py-16 lg:px-12">
         <div className="mx-auto grid max-w-[1320px] gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
-            <h2 className="font-[var(--font-heading)] text-5xl leading-none text-cream">
+            <h2 className="break-words font-[var(--font-heading)] text-4xl leading-none text-cream sm:text-5xl">
               EL CLASSICO BEACH CHEZ WEST AND EL CLASSICO APARTMENT
             </h2>
             <p className="mt-6 max-w-xl text-sm leading-7 text-white/60">

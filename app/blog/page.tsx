@@ -48,12 +48,12 @@ export default async function BlogRoute() {
 
   return (
     <main className="min-h-screen bg-cream text-abyss">
-      <header className="bg-abyss px-5 py-8 text-white lg:px-12">
+      <header className="bg-abyss px-4 py-7 text-white sm:px-5 sm:py-8 lg:px-12">
         <div className="mx-auto flex max-w-[1320px] flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <a href="/" className="font-[var(--font-heading)] text-3xl font-semibold tracking-[0.15em]">
+          <a href="/" className="font-[var(--font-heading)] text-2xl font-semibold tracking-[0.1em] sm:text-3xl sm:tracking-[0.15em]">
             EL CLASSICO
           </a>
-          <nav className="flex flex-wrap gap-4 text-xs font-black uppercase tracking-[0.24em] text-white/70">
+          <nav className="flex flex-wrap gap-3 text-[0.68rem] font-black uppercase tracking-[0.14em] text-white/70 sm:gap-4 sm:text-xs sm:tracking-[0.24em]">
             <a className="transition hover:text-gold" href="/">Home</a>
             <a className="transition hover:text-gold" href="/#offers">Offers</a>
             <a className="transition hover:text-gold" href="/#accommodation">Accommodation</a>
@@ -62,10 +62,10 @@ export default async function BlogRoute() {
         </div>
       </header>
 
-      <section className="bg-abyss px-5 pb-20 pt-10 text-white lg:px-12 lg:pb-28">
+      <section className="bg-abyss px-4 pb-16 pt-8 text-white sm:px-5 sm:pb-20 sm:pt-10 lg:px-12 lg:pb-28">
         <div className="mx-auto max-w-[1320px] text-center">
-          <p className="text-xs font-black uppercase tracking-[0.4em] text-gold">News and updates</p>
-          <h1 className="mx-auto mt-6 max-w-5xl font-[var(--font-heading)] text-6xl font-semibold leading-[0.9] tracking-[-0.055em] md:text-8xl">
+          <p className="text-[0.68rem] font-black uppercase tracking-[0.22em] text-gold sm:text-xs sm:tracking-[0.4em]">News and updates</p>
+          <h1 className="mx-auto mt-6 max-w-5xl break-words font-[var(--font-heading)] text-[clamp(3.2rem,16vw,5.2rem)] font-semibold leading-[0.9] tracking-[-0.05em] md:text-8xl">
             El Classico Magazine
           </h1>
           <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-white/70">
@@ -75,7 +75,7 @@ export default async function BlogRoute() {
         </div>
       </section>
 
-      <section className="px-5 py-20 lg:px-12">
+      <section className="px-4 py-16 sm:px-5 sm:py-20 lg:px-12">
         <div className="mx-auto max-w-[1320px]">
           {posts.length > 0 ? (
             <div className="grid gap-8 lg:grid-cols-3">
@@ -92,12 +92,12 @@ export default async function BlogRoute() {
                       className="aspect-square w-full object-cover"
                     />
                   ) : (
-                    <div className="grid aspect-square w-full place-items-center bg-abyss p-8 text-center text-gold">
-                      <span className="font-[var(--font-heading)] text-5xl leading-none">El Classico Magazine</span>
+                    <div className="grid aspect-square w-full place-items-center bg-abyss p-6 text-center text-gold sm:p-8">
+                      <span className="font-[var(--font-heading)] text-4xl leading-none sm:text-5xl">El Classico Magazine</span>
                     </div>
                   )}
                   <div className="border border-t-0 border-abyss/10 p-7">
-                    <h2 className="mt-5 font-[var(--font-heading)] text-4xl font-semibold leading-none text-abyss">
+                    <h2 className="mt-5 break-words font-[var(--font-heading)] text-3xl font-semibold leading-none text-abyss sm:text-4xl">
                       {post.title}
                     </h2>
                     <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-gold">
